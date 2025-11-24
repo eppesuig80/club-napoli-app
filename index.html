@@ -425,7 +425,38 @@
         window.restoreTrip = function(id) { if(window.appData.trasfertaAttiva.length > 0 && !confirm("Sovrascrivere attuale?")) return; const archive = window.appData.archivioTrasferte.find(a => String(a.id) === String(id)); if(archive) { window.appData.trasfertaAttiva = JSON.parse(JSON.stringify(archive.list)); window.appData.currentTripInfo = { id: archive.id, name: archive.name }; if(window.saveDataOnline) window.saveDataOnline(); alert("Caricata!"); } };
         window.deleteArchive = function(id) { if(confirm("Eliminare definitivamente?")) { window.appData.archivioTrasferte = window.appData.archivioTrasferte.filter(a => String(a.id) !== String(id)); if(window.saveDataOnline) window.saveDataOnline(); } };
         window.renameCurrentTrip = function() { const newName = prompt("Nome Trasferta:", window.appData.currentTripInfo?.name || ""); if (newName) { if (!window.appData.currentTripInfo) window.appData.currentTripInfo = { id: Date.now().toString(), name: "" }; window.appData.currentTripInfo.name = newName.trim(); syncToArchiveIfLinked(); if(window.saveDataOnline) window.saveDataOnline(); } };
-        window.printArchiveTrip = function(id) { const trip = window.appData.archivioTrasferte.find(a => String(a.id) === String(id)); if(!trip) return; const rLimit = parseInt(prompt("Righe per pagina?", "20")) || 0; const fSize = parseInt(prompt("Font Size?", "10")) || 10; const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: "landscape" }); if(window.appData.customLogo) { try { doc.addImage(window.appData.customLogo, 'PNG', 14, 10, 25, 25); } catch(e){} } doc.setFontSize(16); doc.setTextColor(18, 47, 103); doc.text("CLUB NAPOLI PARTENOPEI MODENA", 45, 20); doc.setFontSize(14); doc.setTextColor(0); doc.text(`Trasferta: ${trip.name}`, 45, 28); doc.setFontSize(10); doc.text(`Data Archivio: ${trip.date} - Totale: ${trip.list.length}`, 45, 34); const tableRows = []; trip.list.forEach((item, index) => { let d = {}; if(item.originType === 'soci' && window.appData.soci) d = window.appData.soci.find(s => s.id === item.refId) || {}; else if(window.appData.accompagnatori) d = window.appData.accompagnatori.find(a => a.id === item.refId) || {}; let nameCell = `${item.cognome} ${item.nome}`; if(item.note) nameCell = `(NOTE: ${item.note})\n${nameCell}`; tableRows.push([ index + 1, nameCell, `${d.luogo||''} (${d.prov||''}) - ${formatDateIT(d.dataNascita)}`, `${d.residenza||''} (${d.provResidenza||''})`, d.cf||'', d.tessera||'-' ]); }); doc.autoTable({ head: [["#", "Nominativo", "Nascita", "Residenza", "CF", "Tessera"]], body: tableRows, startY: 45, theme: 'grid', headStyles: { fillColor: [18, 47, 103] }, styles: { fontSize: fSize }, didParseCell: function(data) { if (data.section === 'body' && trip.list[data.row.index].highlightColor === 'green') data.cell.styles.fillColor = [209, 231, 221]; } }); doc.save(`Trasferta_${trip.name}.pdf`); };
+        
+        // --- MODIFICA RICHIESTA: APERTURA ANTEPRIMA ---
+        window.printArchiveTrip = function(id) { 
+            const trip = window.appData.archivioTrasferte.find(a => String(a.id) === String(id)); 
+            if(!trip) return; 
+            const rLimit = parseInt(prompt("Righe per pagina?", "20")) || 0; 
+            const fSize = parseInt(prompt("Font Size?", "10")) || 10; 
+            const { jsPDF } = window.jspdf; 
+            const doc = new jsPDF({ orientation: "landscape" }); 
+            if(window.appData.customLogo) { try { doc.addImage(window.appData.customLogo, 'PNG', 14, 10, 25, 25); } catch(e){} } 
+            doc.setFontSize(16); doc.setTextColor(18, 47, 103); 
+            doc.text("CLUB NAPOLI PARTENOPEI MODENA", 45, 20); 
+            doc.setFontSize(14); doc.setTextColor(0); 
+            doc.text(`Trasferta: ${trip.name}`, 45, 28); 
+            doc.setFontSize(10); 
+            doc.text(`Data Archivio: ${trip.date} - Totale: ${trip.list.length}`, 45, 34); 
+            const tableRows = []; 
+            trip.list.forEach((item, index) => { 
+                let d = {}; 
+                if(item.originType === 'soci' && window.appData.soci) d = window.appData.soci.find(s => s.id === item.refId) || {}; 
+                else if(window.appData.accompagnatori) d = window.appData.accompagnatori.find(a => a.id === item.refId) || {}; 
+                let nameCell = `${item.cognome} ${item.nome}`; 
+                if(item.note) nameCell = `(NOTE: ${item.note})\n${nameCell}`; 
+                tableRows.push([ index + 1, nameCell, `${d.luogo||''} (${d.prov||''}) - ${formatDateIT(d.dataNascita)}`, `${d.residenza||''} (${d.provResidenza||''})`, d.cf||'', d.tessera||'-' ]); 
+            }); 
+            doc.autoTable({ head: [["#", "Nominativo", "Nascita", "Residenza", "CF", "Tessera"]], body: tableRows, startY: 45, theme: 'grid', headStyles: { fillColor: [18, 47, 103] }, styles: { fontSize: fSize }, didParseCell: function(data) { if (data.section === 'body' && trip.list[data.row.index].highlightColor === 'green') data.cell.styles.fillColor = [209, 231, 221]; } }); 
+            
+            // MODIFICATO QUI: Genera Blob URL e apri in nuova scheda
+            const stringaPdf = doc.output('bloburl');
+            window.open(stringaPdf, '_blank');
+        };
+
         window.downloadSelfContained = function() { const dataJson = JSON.stringify(window.appData); let htmlContent = document.documentElement.outerHTML; const regex = /window\.appData = \{.*?\};/; const newInit = `window.appData = ${dataJson};`; htmlContent = htmlContent.replace(regex, newInit); const blob = new Blob([htmlContent], {type: 'text/html'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = "ClubNapoli_App.html"; document.body.appendChild(a); a.click(); document.body.removeChild(a); };
         window.importLogo = function(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { window.appData.customLogo = e.target.result; document.getElementById('app-logo').src = window.appData.customLogo; updateAppIcons(window.appData.customLogo); if(window.saveDataOnline) window.saveDataOnline(); alert("Logo OK!"); }; reader.readAsDataURL(file); input.value = ''; };
         window.exportData = function() { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.appData)); a.download = "Backup.json"; document.body.appendChild(a); a.click(); a.remove(); };
