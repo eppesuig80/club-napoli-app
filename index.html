@@ -106,7 +106,7 @@
                     <input type="file" id="logoInput" class="d-none" accept="image/*" onchange="importLogo(event)">
                     <div>
                         <h4 class="mb-0 fw-bold">CLUB NAPOLI PARTENOPEI MODENA</h4>
-                        <small id="statusCloud" class="text-white-50"><i class="fas fa-database"></i> Dati Locali Salvati</small>
+                        <small id="statusCloud" class="text-white-50"><i class="fas fa-spinner fa-spin"></i> Connessione Cloud...</small>
                     </div>
                 </div>
                 <div class="btn-toolbar-custom">
@@ -129,9 +129,8 @@
             <li class="nav-item"><a class="nav-link" href="#" onclick="toggleSection('archiveTab')"><i class="fas fa-archive"></i> Archivio</a></li>
         </ul>
 
-        <!-- SEZIONE SOCI (Lista + Modulo) -->
+        <!-- SEZIONE SOCI -->
         <div id="sociTab" class="section-container">
-            <!-- CONTAINER LISTA SOCI -->
             <div id="sociListContainer">
                 <div class="card" id="cardListaSoci">
                     <div class="card-header">
@@ -178,7 +177,6 @@
                 </div>
             </div>
 
-            <!-- CONTAINER MODULO SOCIO -->
             <div id="sociFormContainer" class="d-none">
                 <div class="row justify-content-center">
                     <div class="col-lg-8">
@@ -217,9 +215,8 @@
             </div>
         </div>
 
-        <!-- SEZIONE ACCOMPAGNATORI (Lista + Modulo) -->
+        <!-- SEZIONE ACCOMPAGNATORI -->
         <div id="accTab" class="section-container d-none">
-            <!-- CONTAINER LISTA ACCOMPAGNATORI -->
             <div id="accListContainer">
                 <div class="card" id="cardListaAcc">
                     <div class="card-header">
@@ -250,7 +247,6 @@
                 </div>
             </div>
 
-            <!-- CONTAINER MODULO ACCOMPAGNATORE -->
             <div id="accFormContainer" class="d-none">
                 <div class="row justify-content-center">
                     <div class="col-lg-8">
@@ -337,13 +333,36 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Scripts CDN -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 
+    <!-- FIREBASE LIBRARIES -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <script>
+        // ==========================================
+        // CONFIGURAZIONE FIREBASE
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCNXdA7gTQbV-KJYnpm_S55AHjfTi-nn4A",
+            authDomain: "club-napoli-modena-app.firebaseapp.com",
+            databaseURL: "https://club-napoli-modena-app-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "club-napoli-modena-app",
+            storageBucket: "club-napoli-modena-app.firebasestorage.app",
+            messagingSenderId: "379116881555",
+            appId: "1:379116881555:web:fe4044d5625cb417af6f66"
+        };
+
+        // Inizializza Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
         // ==========================================
         // 1. DATA STRUCTURE & PERSISTENCE
         // ==========================================
@@ -367,14 +386,112 @@
         document.addEventListener("click", closeAllAutocompletes);
 
         function initApp() {
-            loadData();
+            loadData(); // Carica prima offline, poi si sintonizza col Cloud
             initRenewalSeasons();
             updateLogoUI();
             
             if (window.__INJECTED_DATA__) {
                 mergeData(window.__INJECTED_DATA__, appData);
             }
-            renderAll();
+        }
+
+        // ==========================================
+        // 2. CORE STORAGE LOGIC & CLOUD SYNC
+        // ==========================================
+        function loadData() {
+            // 1. Carica subito i dati salvati offline sul dispositivo
+            try {
+                const stored = localStorage.getItem('clubNapoliData');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    appData = { ...appData, ...parsed };
+                    normalizeData();
+                    renderAll();
+                }
+            } catch(e) { console.error("Errore caricamento locale", e); }
+
+            // 2. Ascolta Firebase in TEMPO REALE
+            db.ref('clubData').on('value', (snapshot) => {
+                const dataCloud = snapshot.val();
+                if (dataCloud) {
+                    if (dataCloud._lastModified > (appData._lastModified || 0)) {
+                        appData = { ...appData, ...dataCloud };
+                        normalizeData();
+                        localStorage.setItem('clubNapoliData', JSON.stringify(appData));
+                        renderAll();
+                        updateStatus("Sincronizzato Cloud");
+                    } else if (dataCloud._lastModified === appData._lastModified) {
+                        updateStatus("Sincronizzato Cloud");
+                    }
+                } else {
+                    if(appData.soci.length > 0 || appData.accompagnatori.length > 0) {
+                        saveDataImmediate();
+                    } else {
+                        updateStatus("Database Connesso (Vuoto)");
+                        renderAll();
+                    }
+                }
+            });
+        }
+
+        function normalizeData() {
+            if (!appData.soci) appData.soci = [];
+            if (!appData.accompagnatori) appData.accompagnatori = [];
+            if (!appData.archivioTrasferte) appData.archivioTrasferte = [];
+            if (!appData.deletedArchiveIds) appData.deletedArchiveIds = [];
+            if (!appData.deletedMemberIds) appData.deletedMemberIds = [];
+            if (!appData.trasferteAttive) appData.trasferteAttive = [];
+
+            appData.soci.forEach(s => {
+                if(!s.rinnovi) s.rinnovi = {};
+                if(s.evidenziato === undefined) s.evidenziato = false;
+            });
+            
+            appData.soci = appData.soci.filter(s => !appData.deletedMemberIds.includes(s.id));
+            appData.accompagnatori = appData.accompagnatori.filter(a => !appData.deletedMemberIds.includes(a.id));
+            appData.archivioTrasferte = appData.archivioTrasferte.filter(a => !appData.deletedArchiveIds.includes(a.id));
+            
+            appData.trasferteAttive.forEach(t => {
+                t.list = t.list.filter(p => !appData.deletedMemberIds.includes(p.refId));
+                t.list.forEach(p => {
+                    if(p.nota === undefined) p.nota = '';
+                    if(p.notaColor === undefined) p.notaColor = '#0d6efd';
+                });
+            });
+        }
+
+        function saveDataImmediate() {
+            appData._lastModified = Date.now();
+            normalizeData();
+            
+            // Salva offline
+            localStorage.setItem('clubNapoliData', JSON.stringify(appData));
+            updateStatus("Salvataggio in corso...");
+
+            // Salva online
+            db.ref('clubData').set(appData)
+                .then(() => updateStatus("Sincronizzato Cloud"))
+                .catch(err => {
+                    console.error("Errore salvataggio Cloud:", err);
+                    updateStatus("Offline - In attesa di rete");
+                });
+        }
+
+        function mergeData(newData, currentData) {
+            if (newData._lastModified > currentData._lastModified) {
+                appData = { ...newData };
+                normalizeData();
+                saveDataImmediate();
+                renderAll();
+            }
+        }
+
+        function updateStatus(msg) {
+            let icon = msg.includes("Cloud") ? '<i class="fas fa-cloud text-success"></i>' : 
+                       msg.includes("Offline") ? '<i class="fas fa-wifi text-danger"></i>' : 
+                       msg.includes("corso") ? '<i class="fas fa-spinner fa-spin text-warning"></i>' :
+                       '<i class="fas fa-check-circle text-success"></i>';
+            document.getElementById("statusCloud").innerHTML = `${icon} ${msg}`;
         }
 
         function getCurrentFootballSeason() {
@@ -417,66 +534,6 @@
             renderTable('soci');
         }
 
-        // ==========================================
-        // 2. CORE STORAGE LOGIC
-        // ==========================================
-        function loadData() {
-            try {
-                const stored = localStorage.getItem('clubNapoliData');
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    appData = { ...appData, ...parsed };
-                }
-            } catch(e) { console.error("Errore caricamento dati", e); }
-            normalizeData();
-        }
-
-        function normalizeData() {
-            if (!appData.soci) appData.soci = [];
-            if (!appData.accompagnatori) appData.accompagnatori = [];
-            if (!appData.archivioTrasferte) appData.archivioTrasferte = [];
-            if (!appData.deletedArchiveIds) appData.deletedArchiveIds = [];
-            if (!appData.deletedMemberIds) appData.deletedMemberIds = [];
-            if (!appData.trasferteAttive) appData.trasferteAttive = [];
-
-            appData.soci.forEach(s => {
-                if(!s.rinnovi) s.rinnovi = {};
-                if(s.evidenziato === undefined) s.evidenziato = false;
-            });
-            
-            appData.soci = appData.soci.filter(s => !appData.deletedMemberIds.includes(s.id));
-            appData.accompagnatori = appData.accompagnatori.filter(a => !appData.deletedMemberIds.includes(a.id));
-            appData.archivioTrasferte = appData.archivioTrasferte.filter(a => !appData.deletedArchiveIds.includes(a.id));
-            
-            appData.trasferteAttive.forEach(t => {
-                t.list = t.list.filter(p => !appData.deletedMemberIds.includes(p.refId));
-                t.list.forEach(p => {
-                    if(p.nota === undefined) p.nota = '';
-                    if(p.notaColor === undefined) p.notaColor = '#0d6efd';
-                });
-            });
-        }
-
-        function saveDataImmediate() {
-            appData._lastModified = Date.now();
-            normalizeData();
-            localStorage.setItem('clubNapoliData', JSON.stringify(appData));
-            updateStatus("Salvato Localmente");
-        }
-
-        function mergeData(newData, currentData) {
-            if (newData._lastModified > currentData._lastModified) {
-                appData = { ...newData };
-                normalizeData();
-                saveDataImmediate();
-                renderAll();
-            }
-        }
-
-        function updateStatus(msg) {
-            document.getElementById("statusCloud").innerHTML = `<i class="fas fa-check-circle text-success"></i> ${msg}`;
-        }
-
         function updateLogoUI() {
             const custom = localStorage.getItem('clubNapoliLogo');
             document.getElementById('headerLogo').src = custom || DEFAULT_LOGO;
@@ -512,9 +569,6 @@
             return localStorage.getItem('clubNapoliLogo') || DEFAULT_LOGO;
         }
 
-        // ==========================================
-        // 4. RENDERING & UI LOGIC
-        // ==========================================
         function renderAll() {
             renderTable('soci');
             renderTable('acc');
@@ -532,7 +586,6 @@
                 if(l.getAttribute('onclick').includes(tabId)) l.classList.add('active');
             });
 
-            // Se cambio tab principale, resetto sempre i moduli form alla lista base
             if(tabId === 'sociTab') toggleForm('soci', false);
             if(tabId === 'accTab') toggleForm('acc', false);
         }
@@ -547,7 +600,6 @@
             }
         }
 
-        // GESTIONE TOGGLE LISTA <-> FORM
         function toggleForm(type, showForm) {
             const listCont = document.getElementById(`${type}ListContainer`);
             const formCont = document.getElementById(`${type}FormContainer`);
@@ -604,14 +656,11 @@
 
             data.forEach(item => {
                 const status = checkStatus(item);
-                let trClass = item.evidenziato ? 'row-highlight' : '';
-                
                 let dateTdClass = '';
                 if (status === 'expired') dateTdClass = 'date-expired';
                 if (status === 'expiring') dateTdClass = 'date-expiring';
 
                 const tr = document.createElement('tr');
-                tr.className = trClass;
 
                 let html = `<td><button class="btn btn-sm btn-success shadow-sm" onclick="addToTrip('${item.id}', '${isSoci?'soci':'acc'}')" title="Aggiungi in Trasferta"><i class="fas fa-bus"></i></button></td>`;
                 html += `<td class="fw-bold">${item.cognome} ${item.nome}</td>`;
@@ -626,9 +675,8 @@
                     const rClass = hasRenewed ? 'bg-success' : 'bg-danger';
                     const rText = hasRenewed ? 'SI' : 'NO';
                     html += `<td><span class="badge ${rClass} badge-rinnovo shadow-sm" onclick="toggleRenewal('${item.id}')">${rText}</span></td>`;
+                    html += `<td>${item.codSic || ''}</td>`;
                 }
-
-                if (isSoci) html += `<td>${item.codSic || ''}</td>`;
 
                 html += `
                     <td>
@@ -648,9 +696,6 @@
             return d;
         }
 
-        // ==========================================
-        // 5. CRUD OPERATIONS E RINNOVI
-        // ==========================================
         function handleFormSubmit(e, type) {
             e.preventDefault();
             const idField = document.getElementById(`${type}_id`).value;
@@ -702,8 +747,6 @@
 
             saveDataImmediate(); 
             cancelEdit(type); 
-            renderTable(type); 
-            renderTrips();
             Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Salvato!', showConfirmButton: false, timer: 1500 });
         }
 
@@ -761,7 +804,7 @@
                         trip.list = trip.list.filter(x => !(x.refId === id && x.originType === type));
                     });
                     
-                    saveDataImmediate(); renderTable(type); renderTrips();
+                    saveDataImmediate(); 
                 }
             });
         }
@@ -783,12 +826,12 @@
                 }).then((res) => {
                     if(res.isConfirmed) {
                         delete item.rinnovi[season];
-                        saveDataImmediate(); renderTable('soci');
+                        saveDataImmediate();
                     }
                 });
             } else {
                 item.rinnovi[season] = true;
-                saveDataImmediate(); renderTable('soci');
+                saveDataImmediate();
                 Swal.fire({toast: true, position: 'top-end', icon: 'success', title: `${item.nome} ha rinnovato!`, showConfirmButton: false, timer: 1500});
             }
         }
@@ -798,7 +841,7 @@
         // ==========================================
         function createNewTrip() {
             appData.trasferteAttive.push({ id: Date.now().toString(), name: "", date: "", list: [] });
-            saveDataImmediate(); renderTrips();
+            saveDataImmediate();
             Swal.fire({toast:true, position:'top-end', icon:'success', title:'Nuova trasferta creata', showConfirmButton:false, timer:1000});
         }
 
@@ -850,7 +893,7 @@
                 notaColor: '#0d6efd'
             });
 
-            saveDataImmediate(); renderTrips();
+            saveDataImmediate();
             Swal.fire({toast:true, position:'top-end', icon:'success', title:'Aggiunto!', showConfirmButton:false, timer:1000});
         }
 
@@ -910,7 +953,7 @@
                 notaColor: '#0d6efd'
             });
 
-            saveDataImmediate(); renderTrips();
+            saveDataImmediate();
         }
 
         function closeAllAutocompletes(e) {
@@ -981,11 +1024,11 @@
                                             <td class="fw-bold">${idx + 1}</td>
                                             <td>
                                                 <span class="fw-bold">${p.cognome} ${p.nome}</span>
-                                                ${p.nota ? `<span class="badge ms-2" style="background-color: ${p.notaColor || '#6c757d'}">${p.nota}</span>` : ''}
+                                                ${p.nota ? `<span class="badge ms-2 text-white" style="background-color: ${p.notaColor || '#0d6efd'}">${p.nota}</span>` : ''}
                                             </td>
                                             <td>${p.sesso || ''}</td>
                                             <td>
-                                                <button class="btn btn-sm btn-info" onclick="editTripNote('${t.id}', '${p.tripId}')" title="Modifica Nota/Colore"><i class="fas fa-sticky-note"></i></button>
+                                                <button class="btn btn-sm btn-info text-white" onclick="editTripNote('${t.id}', '${p.tripId}')" title="Modifica Nota/Colore"><i class="fas fa-sticky-note"></i></button>
                                                 <button class="btn btn-sm btn-secondary" onclick="moveTripRow('${t.id}', '${p.tripId}')" title="Sposta Posizione"><i class="fas fa-arrows-alt-v"></i></button>
                                                 <button class="btn btn-sm btn-danger" onclick="removeFromTrip('${t.id}', '${p.tripId}')" title="Rimuovi"><i class="fas fa-times"></i></button>
                                             </td>
@@ -1027,7 +1070,6 @@
                     p.nota = res.value.text;
                     p.notaColor = res.value.color;
                     saveDataImmediate();
-                    renderTrips();
                 }
             });
         }
@@ -1052,7 +1094,6 @@
                     const item = trip.list.splice(currentIndex, 1)[0];
                     trip.list.splice(newPos, 0, item);
                     saveDataImmediate();
-                    renderTrips();
                 }
             }
         }
@@ -1061,7 +1102,7 @@
             const trip = appData.trasferteAttive.find(t => t.id === tripId);
             if(trip) {
                 trip.list = trip.list.filter(x => x.tripId !== rowId);
-                saveDataImmediate(); renderTrips();
+                saveDataImmediate();
             }
         }
 
@@ -1080,7 +1121,7 @@
                 }).then(res => {
                     if(res.isConfirmed) {
                         appData.trasferteAttive.splice(tripIndex, 1);
-                        saveDataImmediate(); renderTrips();
+                        saveDataImmediate();
                     }
                 });
                 return;
@@ -1104,7 +1145,7 @@
 
             appData.trasferteAttive.splice(tripIndex, 1);
             
-            saveDataImmediate(); renderTrips(); renderArchive();
+            saveDataImmediate();
             Swal.fire('Archiviata', 'Trasferta spostata nell\'archivio concluse.', 'success');
             toggleSection('archiveTab');
         }
@@ -1143,7 +1184,7 @@
 
                 appData.archivioTrasferte.splice(archIndex, 1);
                 
-                saveDataImmediate(); renderTrips(); renderArchive();
+                saveDataImmediate();
                 toggleSection('tripTab');
                 Swal.fire({toast:true, position:'top-end', icon:'success', title:'Trasferta Riaperta', showConfirmButton:false, timer:1500});
             }
@@ -1160,7 +1201,7 @@
                 if (result.isConfirmed) {
                     appData.archivioTrasferte = appData.archivioTrasferte.filter(x => x.id !== id);
                     appData.deletedArchiveIds.push(id);
-                    saveDataImmediate(); renderArchive();
+                    saveDataImmediate();
                 }
             });
         }
@@ -1188,7 +1229,6 @@
             return doc;
         }
 
-        // --- Stampa Soci Avanzata ---
         async function askSociPDFOptions() {
             const { value: options } = await Swal.fire({
                 title: 'Opzioni Stampa Soci',
@@ -1263,11 +1303,7 @@
             });
 
             doc.autoTable({
-                startY: 100,
-                head: head,
-                body: tableData,
-                styles: { fontSize: fontSize },
-                headStyles: { fillColor: [18, 47, 103] }
+                startY: 100, head: head, body: tableData, styles: { fontSize: fontSize }, headStyles: { fillColor: [18, 47, 103] }
             });
 
             tempPDFDoc = doc;
@@ -1358,12 +1394,9 @@
             const body = trip.list.map((t, idx) => {
                 const full = getFullMemberData(t.refId, t.originType);
                 const row = [
-                    (idx + 1).toString(),
-                    t.cognome + " " + t.nome,
-                    formatDateIT(full.dataNascita),
-                    full.residenza || '',
-                    full.cf || '',
-                    full.tessera || ''
+                    (idx + 1).toString(), t.cognome + " " + t.nome,
+                    formatDateIT(full.dataNascita), full.residenza || '',
+                    full.cf || '', full.tessera || ''
                 ];
                 if(includeCodSic) row.push(full.codSic || '');
                 if(includeNote) row.push(t.nota || '');
@@ -1371,11 +1404,7 @@
             });
 
             doc.autoTable({
-                startY: 105,
-                head: head,
-                body: body,
-                styles: { fontSize: fontSize },
-                headStyles: { fillColor: [18, 47, 103] }
+                startY: 105, head: head, body: body, styles: { fontSize: fontSize }, headStyles: { fillColor: [18, 47, 103] }
             });
 
             tempPDFDoc = doc;
@@ -1399,13 +1428,11 @@
         }
 
         function saveFromPreview() {
-            if(tempPDFDoc) {
-                tempPDFDoc.save(currentPdfFileName || 'Documento.pdf');
-            }
+            if(tempPDFDoc) tempPDFDoc.save(currentPdfFileName || 'Documento.pdf');
         }
 
         // ==========================================
-        // 8. IMPORT / EXPORT / SHARE
+        // 8. EXPORT / IMPORT BACKUP
         // ==========================================
         function exportData() {
             const exportObj = { appData: appData, logo: localStorage.getItem('clubNapoliLogo') || null };
