@@ -2,712 +2,1459 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <!-- 1. VIEWPORT OTTIMIZZATO PER MOBILE -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Club Napoli Partenopei Modena</title>
     
-    <!-- 2. CONFIGURAZIONE WEB APP (iOS & Android) -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Club Napoli">
-    <meta name="theme-color" content="#122F67">
-
-    <title>Gestione Club Napoli Partenopei Modena</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
     
-    <link rel="icon" type="image/png" id="dynamic-favicon" href="">
-    <link rel="apple-touch-icon" id="dynamic-apple-icon" href="">
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-
     <style>
-        :root { --napoli-blue: #122F67; --napoli-sky: #4DA8DA; --bg-light: #f4f6f9; --highlight-green: #d1e7dd; --highlight-name-yellow: #fff3cd; }
-        body { background-color: var(--bg-light); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding-bottom: 80px; -webkit-tap-highlight-color: transparent; }
-        
-        /* HEADER */
-        .main-header { background-color: var(--napoli-blue); color: white; padding: 15px; padding-top: env(safe-area-inset-top); border-bottom: 5px solid var(--napoli-sky); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; box-shadow: 0 4px 6px rgba(0,0,0,0.2); position: relative; z-index: 1000; }
-        .logo-area { display: flex; align-items: center; gap: 15px; }
-        .logo-img { height: 80px; width: auto; max-width: 120px; border-radius: 50%; border: 3px solid white; background: white; object-fit: contain; }
-        .club-title { font-size: 1.5rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; text-shadow: 1px 1px 2px black; line-height: 1.1; }
-        .header-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; justify-content: center; }
-        .header-actions .btn { padding: 6px 12px; font-size: 0.9rem; }
-
-        /* CARDS */
-        .card { border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin-bottom: 20px; border-radius: 12px; overflow: hidden; background: white; transition: all 0.3s ease; }
-        .card-header { background-color: var(--napoli-blue); color: white; font-weight: 600; display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; }
-        .header-btn-group { display: flex; gap: 8px; }
-        .btn-napoli { background-color: var(--napoli-sky); color: white; font-weight: bold; border: none; }
-        .form-label { font-weight: 600; font-size: 0.85rem; color: var(--napoli-blue); margin-bottom: 2px; }
-        .form-control-sm { border: 1px solid #ced4da; padding: 6px; } 
-        
-        /* TABLE STYLES */
-        .table { font-size: 0.95rem !important; }
-        .table td, .table th { white-space: nowrap !important; vertical-align: middle; padding: 8px 10px; }
-        .name-cell-large { font-size: 1rem !important; font-weight: 700; }
-        .name-male { color: #0099ff !important; }
-        .name-female { color: #ff66b3 !important; }
-        .highlight-row { background-color: var(--highlight-green) !important; border-left: 5px solid #198754 !important; } 
-        .trip-highlight { background-color: var(--highlight-green) !important; border-left: 5px solid #198754 !important; }
-        tr.trip-highlight .nominativo-container span.text-uppercase, tr.highlight-row td.text-uppercase { background-color: var(--highlight-name-yellow); box-shadow: 0 0 0 3px var(--highlight-name-yellow); border-radius: 2px; }
-        .data-detail { font-size: 0.85rem !important; color: #444; display: inline-block !important; margin-right: 10px; white-space: nowrap; }
-        .data-detail::after { content: " | "; color: #ccc; margin-left: 10px; }
-        .data-detail:last-child::after { content: ""; }
-
-        /* FULLSCREEN */
-        .card-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; margin: 0 !important; border-radius: 0 !important; padding: 10px; padding-top: env(safe-area-inset-top); overflow: hidden; background-color: white; }
-        .card-fullscreen .table-responsive { max-height: calc(100vh - 120px) !important; }
-        .card-fullscreen #table-trip td:nth-child(2) { display: flex; flex-direction: row; align-items: center; gap: 15px; white-space: nowrap; padding: 15px 10px; }
-        .card-fullscreen #table-trip td:nth-child(2) .nominativo-container { font-size: 1.2rem; margin-right: 15px; min-width: 250px; }
-        
-        .trip-actions-btn { display: flex; gap: 5px; justify-content: center; align-items: center; }
-
-        /* STATUS & ERROR */
-        #error-console { position: fixed; bottom: 0; left: 0; width: 100%; background: #dc3545; color: white; padding: 15px; display: none; z-index: 99999; }
-        
-        #cloud-status { 
-            position: fixed; bottom: 20px; left: 20px; 
-            padding: 8px 15px; border-radius: 20px; 
-            font-weight: bold; z-index: 2000; font-size: 0.8rem; color: white; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3); transition: all 0.3s; 
+        :root {
+            --napoli-blue: #122F67;
+            --napoli-light: #4DA8DA;
+            --bg-color: #f4f6f9;
         }
-        .status-ok { background-color: #198754; } 
-        .status-sync { background-color: #ffc107; color: black !important; } 
-        .status-err { background-color: #dc3545; }
-        .status-local { background-color: #6c757d; } /* Grigio per modo locale */
-
-        .counter-badge { background: white; color: var(--napoli-blue); padding: 2px 8px; border-radius: 12px; font-size: 0.9rem; font-weight: bold; }
-        .archive-count-badge { background-color: #000; color: #fff; padding: 2px 6px; border-radius: 6px; font-size: 0.8rem; margin-left: 8px; font-weight: bold; }
-
-        /* Salvataggio Popup */
-        #save-indicator { position: fixed; bottom: 20px; right: 20px; background: rgba(25, 135, 84, 0.95); color: white; padding: 12px 25px; border-radius: 30px; font-weight: bold; display: none; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 1rem; }
-
-        @media (max-width: 768px) {
-            .main-header { flex-direction: column; align-items: center; text-align: center; }
-            .header-actions { width: 100%; justify-content: center; margin-top: 15px; }
-            .card-fullscreen #table-trip td:nth-child(2) { flex-direction: column; align-items: flex-start; gap: 5px; }
-            .card-fullscreen #table-trip td:nth-child(2) .data-detail { display: block !important; border: none; padding: 0; }
-            .card-fullscreen #table-trip td:nth-child(2) .data-detail::after { content: ""; }
+        body {
+            background-color: var(--bg-color);
+            padding-bottom: env(safe-area-inset-bottom, 80px);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
+        .header-custom {
+            background-color: var(--napoli-blue);
+            border-bottom: 4px solid var(--napoli-light);
+            color: white;
+            padding: 15px 0;
+            padding-top: max(15px, env(safe-area-inset-top));
+        }
+        .logo-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+            background: white;
+            cursor: pointer;
+        }
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .card-header {
+            background-color: var(--napoli-blue);
+            color: white;
+            border-radius: 12px 12px 0 0 !important;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .table-responsive { max-height: 650px; overflow-y: auto; }
+        thead { position: sticky; top: 0; background: white; z-index: 10; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        th { white-space: nowrap; font-size: 0.9rem; }
+        td { vertical-align: middle; font-size: 0.9rem; }
+        
+        .row-highlight { background-color: #d1e7dd !important; }
+        .date-expired { color: #dc3545 !important; font-weight: 900; background-color: #f8d7da !important; border-radius: 4px; padding: 4px; }
+        .date-expiring { color: #d97706 !important; font-weight: 900; background-color: #fff3cd !important; border-radius: 4px; padding: 4px; }
+
+        .card.fullscreen {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 9999; margin: 0; border-radius: 0;
+            overflow-y: auto;
+        }
+        .card.fullscreen .table-responsive { max-height: calc(100vh - 120px); }
+
+        input, select, textarea { font-size: 16px !important; }
+        .badge-rinnovo { cursor: pointer; user-select: none; padding: 6px 10px; font-size: 0.8rem; }
+        .btn-toolbar-custom .btn { margin: 2px; font-size: 0.85rem; }
+        
+        #pdfPreviewModal .modal-body { height: 70vh; padding: 0; }
+        #pdfPreviewIframe { width: 100%; height: 100%; border: none; }
+        
+        .nav-pills .nav-link { font-weight: bold; margin-right: 5px; margin-bottom: 5px; color: var(--napoli-blue); background: white; border: 1px solid #ddd; }
+        .nav-pills .nav-link.active { background-color: var(--napoli-blue); color: white; border-color: var(--napoli-blue); }
+
+        .autocomplete-results {
+            position: absolute; z-index: 1000; background: white; border: 1px solid #ccc;
+            width: 100%; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 0 0 8px 8px; margin-top: -2px;
+        }
+        .autocomplete-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 0.9rem;}
+        .autocomplete-item:hover { background: #f0f0f0; }
     </style>
 </head>
 <body>
 
-    <div id="save-indicator"><i class="fa-solid fa-floppy-disk"></i> Dati Salvati</div>
-    <div id="cloud-status" class="status-sync"><i class="fa-solid fa-cloud"></i> Connessione...</div>
-    <div id="error-console"><div class="d-flex justify-content-between"><span><strong>ERRORE:</strong> <span id="error-msg"></span></span><button class="btn btn-sm btn-outline-light" onclick="document.getElementById('error-console').style.display='none'">X</button></div></div>
+    <script>
+        const DEFAULT_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iIzQ4QTlENCIgc3Ryb2tlPSIjMTIyRjY3IiBzdHJva2Utd2lkdGg9IjQiLz48dGV4dCB4PSI1MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI2MCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TjwvdGV4dD48L3N2Zz4=";
+    </script>
+    <script id="injected-data"></script>
 
-    <header class="main-header">
-        <div class="logo-area">
-            <img src="logo.png" alt="Logo" class="logo-img" id="app-logo" crossorigin="anonymous" onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/10750/10750808.png';"> 
-            <span class="club-title">CLUB NAPOLI PARTENOPEI MODENA</span>
-        </div>
-        <div class="header-actions">
-            <button class="btn btn-light btn-sm" style="background-color: #e0cffc; border-color: #6f42c1; color: #333; font-weight: bold;" onclick="downloadSelfContained()" title="Invia App Completa">
-                <i class="fa-solid fa-share-nodes"></i> Condividi App
-            </button>
-            <input type="file" id="logoInput" accept="image/*" style="display: none;" onchange="importLogo(this)">
-            <button class="btn btn-light btn-sm" onclick="document.getElementById('logoInput').click()"><i class="fa-solid fa-image"></i> Logo</button>
-            
-            <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(this)">
-            <button class="btn btn-warning btn-sm text-dark fw-bold" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-file-import"></i> Importa Backup</button>
-            <button class="btn btn-light btn-sm" onclick="exportData()"><i class="fa-solid fa-file-export"></i> Export JSON</button>
+    <!-- Header -->
+    <header class="header-custom mb-4">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="" id="headerLogo" class="logo-circle" onclick="document.getElementById('logoInput').click()" title="Cambia Logo" alt="Logo">
+                    <input type="file" id="logoInput" class="d-none" accept="image/*" onchange="importLogo(event)">
+                    <div>
+                        <h4 class="mb-0 fw-bold">CLUB NAPOLI PARTENOPEI MODENA</h4>
+                        <small id="statusCloud" class="text-white-50"><i class="fas fa-database"></i> Dati Locali Salvati</small>
+                    </div>
+                </div>
+                <div class="btn-toolbar-custom">
+                    <button class="btn btn-outline-light btn-sm" onclick="downloadSelfContained()"><i class="fas fa-share-alt"></i> Condividi App</button>
+                    <button class="btn btn-outline-light btn-sm" onclick="document.getElementById('logoInput').click()"><i class="fas fa-image"></i> Logo</button>
+                    <button class="btn btn-outline-light btn-sm" onclick="document.getElementById('importInput').click()"><i class="fas fa-upload"></i> Importa</button>
+                    <input type="file" id="importInput" class="d-none" accept=".json" onchange="importData(event)">
+                    <button class="btn btn-light btn-sm text-primary fw-bold" onclick="exportData()"><i class="fas fa-download"></i> Backup JSON</button>
+                </div>
+            </div>
         </div>
     </header>
 
-    <div class="container-fluid mt-4">
-        <div class="row">
-            <!-- SINISTRA -->
-            <div class="col-lg-7">
-                <div class="card" id="card-soci-form">
-                    <div class="card-header"><span><i class="fa-solid fa-user-plus"></i> Iscrizione Soci <span id="count-soci" class="counter-badge">0</span></span><div class="header-btn-group"><button class="btn btn-sm btn-outline-light" onclick="toggleMaximize('card-soci-form')"><i class="fa-solid fa-expand"></i></button><button class="btn btn-sm btn-outline-light" onclick="toggleSection('form-soci-body')">Mostra/Nascondi</button></div></div>
-                    <div class="card-body" id="form-soci-body">
-                        <form id="formSoci" onsubmit="handleFormSubmit(event, 'soci')">
-                            <div class="row g-2">
-                                <div class="col-md-4"><label class="form-label">Nome</label><input type="text" class="form-control form-control-sm" name="nome" required></div>
-                                <div class="col-md-4"><label class="form-label">Cognome</label><input type="text" class="form-control form-control-sm" name="cognome" required></div>
-                                <div class="col-md-4"><label class="form-label">Sesso</label><select class="form-select form-select-sm select-sex" name="sesso" onchange="updateSexColor(this)"><option value="M">Maschio</option><option value="F">Femmina</option></select></div>
-                                <div class="col-md-3"><label class="form-label">Nascita (Luogo)</label><input type="text" class="form-control form-control-sm" name="luogo"></div>
-                                <div class="col-md-2"><label class="form-label">Prov.</label><input type="text" class="form-control form-control-sm" name="prov"></div>
-                                <div class="col-md-3"><label class="form-label">Data Nascita</label><input type="date" class="form-control form-control-sm" name="dataNascita"></div>
-                                <div class="col-md-4"><label class="form-label">Codice Fiscale</label><input type="text" class="form-control form-control-sm" name="cf"></div>
-                                <div class="col-md-3"><label class="form-label">Residenza</label><input type="text" class="form-control form-control-sm" name="residenza"></div>
-                                <div class="col-md-1"><label class="form-label">Prov.</label><input type="text" class="form-control form-control-sm" name="provResidenza" maxlength="2" style="text-transform:uppercase;"></div>
-                                <div class="col-md-3"><label class="form-label">N° Tessera</label><input type="text" class="form-control form-control-sm" name="tessera"></div>
-                                <div class="col-md-3"><label class="form-label">Scadenza</label><input type="date" class="form-control form-control-sm" name="scadenza"></div>
-                                <div class="col-md-2"><label class="form-label">Cod/Sic</label><input type="text" class="form-control form-control-sm" name="codSic"></div>
-                                <div class="col-md-12 d-flex gap-2 align-items-end mt-3"><button type="submit" id="btn-submit-soci" class="btn btn-napoli btn-sm flex-grow-1">Inserisci</button><button type="button" id="btn-cancel-soci" class="btn btn-secondary btn-sm" style="display:none;" onclick="cancelEdit('soci')">Annulla</button></div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+    <div class="container-fluid">
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills mb-3" id="appTabs">
+            <li class="nav-item"><a class="nav-link active" href="#" onclick="toggleSection('sociTab')"><i class="fas fa-users"></i> Soci</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" onclick="toggleSection('accTab')"><i class="fas fa-user-friends"></i> Accompagnatori</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" onclick="toggleSection('tripTab')"><i class="fas fa-bus"></i> Trasferte Attive</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" onclick="toggleSection('archiveTab')"><i class="fas fa-archive"></i> Archivio</a></li>
+        </ul>
 
-                <div class="card" id="card-soci-list">
+        <!-- SEZIONE SOCI (Lista + Modulo) -->
+        <div id="sociTab" class="section-container">
+            <!-- CONTAINER LISTA SOCI -->
+            <div id="sociListContainer">
+                <div class="card" id="cardListaSoci">
                     <div class="card-header">
-                        <span><i class="fa-solid fa-users"></i> Lista Soci</span>
-                        <div class="header-btn-group">
-                            <!-- MODIFICA: Bottoni Stampa Scaduti (Red) e In Scadenza (Orange) -->
-                            <button class="btn btn-sm btn-danger fw-bold me-1" id="btn-print-expired" style="display:none;" onclick="printExpiredPDF()"><i class="fa-solid fa-print"></i> Scaduti (<span id="expired-count">0</span>)</button>
-                            <button class="btn btn-sm btn-warning fw-bold me-1 text-dark" id="btn-print-expiring" style="display:none;" onclick="printExpiringPDF()"><i class="fa-solid fa-print"></i> In Scadenza (<span id="expiring-count">0</span>)</button>
-                            
-                            <button class="btn btn-sm btn-outline-light me-1" onclick="exportPDFSoci()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
-                            <button class="btn btn-sm btn-outline-light" onclick="toggleMaximize('card-soci-list')"><i class="fa-solid fa-expand"></i></button>
-                            <button class="btn btn-sm btn-outline-light" onclick="toggleSection('list-soci-body')">Mostra/Nascondi</button>
+                        <h5 class="mb-0"><i class="fas fa-users"></i> Elenco Soci Iscritti</h5>
+                        <div>
+                            <button class="btn btn-sm btn-success me-2 fw-bold shadow-sm" onclick="toggleForm('soci', true)"><i class="fas fa-plus"></i> Nuovo Socio</button>
+                            <button class="btn btn-sm btn-outline-light" onclick="toggleMaximize('cardListaSoci')"><i class="fas fa-expand"></i></button>
                         </div>
                     </div>
-                    <div class="card-body" id="list-soci-body">
-                        <div class="input-group input-group-sm mb-2"><span class="input-group-text bg-warning text-dark"><i class="fa-solid fa-magnifying-glass"></i></span><input type="text" class="form-control border-warning" id="search-soci" style="background-color: #fffdf0; font-weight:bold;" placeholder="Cerca nominativo in tutti gli elenchi..." onkeyup="globalSearch(this.value)"></div>
-                        <div class="table-responsive" style="max-height: 450px; overflow-y: auto;"><table class="table table-sm align-middle mb-0 table-hover table-bordered" id="table-soci"><thead class="table-light sticky-top"><tr class="text-center small"><th>Bus</th><th>#</th><th>Nominativo</th><th>Nascita</th><th>Residenza</th><th>CF</th><th>Tessera</th><th>Scadenza</th><th>Cod/Sic</th><th>Azioni</th></tr></thead><tbody class="table-data-small"></tbody></table></div>
-                    </div>
-                </div>
-
-                <div class="card mt-4 border-secondary" id="card-acc-form">
-                    <div class="card-header bg-secondary"><span><i class="fa-solid fa-user-group"></i> Iscrizione Accompagnatori <span id="count-acc" class="counter-badge">0</span></span><div class="header-btn-group"><button class="btn btn-sm btn-outline-light" onclick="toggleMaximize('card-acc-form')"><i class="fa-solid fa-expand"></i></button><button class="btn btn-sm btn-outline-light" onclick="toggleSection('form-acc-body')">Mostra/Nascondi</button></div></div>
-                    <div class="card-body" id="form-acc-body" style="display:none;">
-                        <form id="formAcc" onsubmit="handleFormSubmit(event, 'accompagnatori')">
-                            <div class="row g-2">
-                                <div class="col-md-4"><label class="form-label">Nome</label><input type="text" class="form-control form-control-sm" name="nome" required></div>
-                                <div class="col-md-4"><label class="form-label">Cognome</label><input type="text" class="form-control form-control-sm" name="cognome" required></div>
-                                <div class="col-md-4"><label class="form-label">Sesso</label><select class="form-select form-select-sm select-sex" name="sesso" onchange="updateSexColor(this)"><option value="M">Maschio</option><option value="F">Femmina</option></select></div>
-                                <div class="col-md-3"><label class="form-label">Nascita (Luogo)</label><input type="text" class="form-control form-control-sm" name="luogo"></div>
-                                <div class="col-md-2"><label class="form-label">Prov.</label><input type="text" class="form-control form-control-sm" name="prov"></div>
-                                <div class="col-md-3"><label class="form-label">Data Nascita</label><input type="date" class="form-control form-control-sm" name="dataNascita"></div>
-                                <div class="col-md-4"><label class="form-label">Codice Fiscale</label><input type="text" class="form-control form-control-sm" name="cf"></div>
-                                <div class="col-md-3"><label class="form-label">Residenza</label><input type="text" class="form-control form-control-sm" name="residenza"></div>
-                                <div class="col-md-1"><label class="form-label">Prov.</label><input type="text" class="form-control form-control-sm" name="provResidenza" maxlength="2" style="text-transform:uppercase;"></div>
-                                <div class="col-md-3"><label class="form-label">N° Tessera</label><input type="text" class="form-control form-control-sm" name="tessera"></div>
-                                <div class="col-md-3"><label class="form-label">Scadenza</label><input type="date" class="form-control form-control-sm" name="scadenza"></div>
-                                <div class="col-md-2"><label class="form-label">Cod/Sic</label><input type="text" class="form-control form-control-sm" name="codSic"></div>
-                                <div class="col-md-12 d-flex gap-2 align-items-end mt-3"><button type="submit" id="btn-submit-acc" class="btn btn-secondary btn-sm flex-grow-1">Inserisci</button><button type="button" id="btn-cancel-acc" class="btn btn-outline-secondary btn-sm" style="display:none;" onclick="cancelEdit('accompagnatori')">Annulla</button></div>
+                    <div class="card-body">
+                        <div class="row mb-3 g-2 align-items-center">
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="searchSoci" placeholder="Ricerca globale soci..." onkeyup="renderTable('soci')">
                             </div>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="card border-secondary" id="card-acc-list">
-                    <div class="card-header bg-secondary"><span><i class="fa-solid fa-users-viewfinder"></i> Lista Accompagnatori</span><div class="header-btn-group"><button class="btn btn-sm btn-outline-light" onclick="toggleMaximize('card-acc-list')"><i class="fa-solid fa-expand"></i></button><button class="btn btn-sm btn-outline-light" onclick="toggleSection('list-acc-body')">Mostra/Nascondi</button></div></div>
-                    <div class="card-body" id="list-acc-body" style="display:none;">
-                        <div class="input-group input-group-sm mb-2"><span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span><input type="text" class="form-control" id="search-acc" placeholder="Cerca accompagnatore..." onkeyup="globalSearch(this.value)"></div>
-                         <div class="table-responsive" style="max-height: 300px; overflow-y: auto;"><table class="table table-sm align-middle mb-0 table-bordered" id="table-accompagnatori"><thead class="table-light sticky-top"><tr class="text-center small"><th>Bus</th><th>#</th><th>Nominativo</th><th>Nascita</th><th>Residenza</th><th>CF</th><th>Tessera</th><th>Scadenza</th><th>Cod/Sic</th><th>Azioni</th></tr></thead><tbody class="table-data-small"></tbody></table></div>
+                            <div class="col-md-3">
+                                <select class="form-select" id="seasonSelect" onchange="setRenewalSeason(this.value)"></select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="renewalFilter" onchange="setRenewalFilter(this.value)">
+                                    <option value="all">Tutti</option>
+                                    <option value="renewed">Rinnovati</option>
+                                    <option value="missing">Non Rinnovati</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <span class="badge bg-primary fs-6">Soci in lista: <span id="countSoci">0</span></span>
+                            </div>
+                        </div>
+                        <div class="mb-2 d-flex flex-wrap gap-2">
+                            <button class="btn btn-sm btn-danger" onclick="askSociPDFOptions()"><i class="fas fa-file-pdf"></i> Stampa Soci</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="printExpiredPDF()"><i class="fas fa-exclamation-circle"></i> Scaduti</button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="printExpiringPDF()"><i class="fas fa-clock"></i> In Scadenza</button>
+                            <span class="ms-auto align-self-center fw-bold text-success" id="renewalCounterText"></span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered" id="tableSoci">
+                                <thead><tr>
+                                    <th>Bus</th><th>Nominativo</th><th>Nascita</th><th>Residenza</th><th>CF</th><th>Tessera</th><th>Scadenza</th><th>Rinnovo</th><th>Cod/Sic</th><th>Azioni</th>
+                                </tr></thead>
+                                <tbody id="tbodySoci"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- DESTRA -->
-            <div class="col-lg-5">
-                <div class="card border-primary" id="card-trip">
-                    <div class="card-header bg-primary text-white"><span id="trip-header-title"><i class="fa-solid fa-bus"></i> Gestione Trasferta Bus</span><div class="header-btn-group"><button class="btn btn-sm btn-outline-light" onclick="toggleMaximize('card-trip')"><i class="fa-solid fa-expand"></i></button><button class="btn btn-sm btn-outline-light" onclick="toggleSection('trip-body')">Mostra/Nascondi</button></div></div>
-                    <div class="card-body" id="trip-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded"><h6 class="m-0 text-primary fw-bold">Partecipanti: <span id="trip-count" class="badge bg-primary">0</span></h6><button class="btn btn-warning btn-sm fw-bold" onclick="closeTrip()"><i class="fa-solid fa-box-archive"></i> Archivia / Chiudi</button></div>
-                        <div class="table-responsive border rounded bg-white" style="max-height: 600px; overflow-y: auto;"><table class="table table-sm table-bordered mb-0" id="table-trip"><thead class="table-primary sticky-top" style="z-index: 5;"><tr class="text-center"><th width="8%">N°</th><th>Dati Completi Nominativo</th><th width="25%">Strumenti</th></tr></thead><tbody></tbody></table></div>
-                        <div class="mt-2 text-muted small fst-italic text-center">Usa le icone per: Evidenziare (Verde), Note (Arancione), Posto (Sposta in riga), Modifica nome, Elimina.</div>
+            <!-- CONTAINER MODULO SOCIO -->
+            <div id="sociFormContainer" class="d-none">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="card border-success" id="cardFormSoci">
+                            <div class="card-header bg-success">
+                                <h5 class="mb-0" id="formSociTitle"><i class="fas fa-user-plus"></i> Modulo Iscrizione Socio</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="formSoci" onsubmit="handleFormSubmit(event, 'soci')">
+                                    <input type="hidden" id="soci_id">
+                                    <div class="row g-3">
+                                        <div class="col-md-6"><label class="fw-bold">Nome *</label><input type="text" id="soci_nome" class="form-control" required></div>
+                                        <div class="col-md-6"><label class="fw-bold">Cognome *</label><input type="text" id="soci_cognome" class="form-control" required></div>
+                                        <div class="col-md-4"><label class="fw-bold">Sesso</label>
+                                            <select id="soci_sesso" class="form-select"><option value="M">Maschio</option><option value="F">Femmina</option></select>
+                                        </div>
+                                        <div class="col-md-4"><label class="fw-bold">Data Nascita</label><input type="date" id="soci_dataNascita" class="form-control"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Codice Fiscale</label><input type="text" id="soci_cf" class="form-control text-uppercase" maxlength="16"></div>
+                                        <div class="col-md-8"><label class="fw-bold">Luogo Nascita</label><input type="text" id="soci_luogo" class="form-control"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Provincia</label><input type="text" id="soci_prov" class="form-control" maxlength="2" placeholder="Es: NA"></div>
+                                        <div class="col-md-8"><label class="fw-bold">Residenza</label><input type="text" id="soci_residenza" class="form-control"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Prov. Residenza</label><input type="text" id="soci_provResidenza" class="form-control" maxlength="2"></div>
+                                        <div class="col-md-4"><label class="fw-bold text-primary">N° Tessera</label><input type="text" id="soci_tessera" class="form-control border-primary"></div>
+                                        <div class="col-md-4"><label class="fw-bold text-danger">Scadenza Tessera</label><input type="date" id="soci_scadenza" class="form-control border-danger"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Cod/Sic</label><input type="text" id="soci_codSic" class="form-control"></div>
+                                    </div>
+                                    <div class="mt-4 d-flex gap-2">
+                                        <button type="submit" class="btn btn-success btn-lg px-5" id="btnSociSubmit"><i class="fas fa-save"></i> Salva Socio</button>
+                                        <button type="button" class="btn btn-secondary btn-lg" id="btnSociCancel" onclick="cancelEdit('soci')">Indietro / Annulla</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="card mt-4 border-dark" id="card-archive">
-                    <div class="card-header bg-dark text-white"><span><i class="fa-solid fa-box-archive"></i> Archivio Trasferte Concluse</span><div class="header-btn-group"><button class="btn btn-sm btn-outline-light" onclick="toggleMaximize('card-archive')"><i class="fa-solid fa-expand"></i></button><button class="btn btn-sm btn-outline-light" onclick="toggleSection('archive-body')">Mostra/Nascondi</button></div></div>
-                    <div class="card-body" id="archive-body" style="display:none;"><ul class="list-group list-group-flush" id="archive-list"></ul><div class="mt-3 text-center" id="empty-archive-msg" style="display:none;"><small class="text-muted">Nessuna trasferta in archivio.</small></div></div>
+            </div>
+        </div>
+
+        <!-- SEZIONE ACCOMPAGNATORI (Lista + Modulo) -->
+        <div id="accTab" class="section-container d-none">
+            <!-- CONTAINER LISTA ACCOMPAGNATORI -->
+            <div id="accListContainer">
+                <div class="card" id="cardListaAcc">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-user-friends"></i> Elenco Accompagnatori</h5>
+                        <div>
+                            <button class="btn btn-sm btn-success me-2 fw-bold shadow-sm" onclick="toggleForm('acc', true)"><i class="fas fa-plus"></i> Nuovo Accompagnatore</button>
+                            <button class="btn btn-sm btn-outline-light" onclick="toggleMaximize('cardListaAcc')"><i class="fas fa-expand"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3 align-items-center">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" id="searchAcc" placeholder="Ricerca accompagnatori..." onkeyup="renderTable('acc')">
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <span class="badge bg-primary fs-6">Totale: <span id="countAcc">0</span></span>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered" id="tableAcc">
+                                <thead><tr>
+                                    <th>Bus</th><th>Nominativo</th><th>Nascita</th><th>Residenza</th><th>CF</th><th>Tessera</th><th>Scadenza</th><th>Azioni</th>
+                                </tr></thead>
+                                <tbody id="tbodyAcc"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTAINER MODULO ACCOMPAGNATORE -->
+            <div id="accFormContainer" class="d-none">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="card border-success" id="cardFormAcc">
+                            <div class="card-header bg-success">
+                                <h5 class="mb-0" id="formAccTitle"><i class="fas fa-user-plus"></i> Modulo Iscrizione Accompagnatore</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="formAcc" onsubmit="handleFormSubmit(event, 'acc')">
+                                    <input type="hidden" id="acc_id">
+                                    <div class="row g-3">
+                                        <div class="col-md-6"><label class="fw-bold">Nome *</label><input type="text" id="acc_nome" class="form-control" required></div>
+                                        <div class="col-md-6"><label class="fw-bold">Cognome *</label><input type="text" id="acc_cognome" class="form-control" required></div>
+                                        <div class="col-md-4"><label class="fw-bold">Sesso</label>
+                                            <select id="acc_sesso" class="form-select"><option value="M">Maschio</option><option value="F">Femmina</option></select>
+                                        </div>
+                                        <div class="col-md-4"><label class="fw-bold">Data Nascita</label><input type="date" id="acc_dataNascita" class="form-control"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Codice Fiscale</label><input type="text" id="acc_cf" class="form-control text-uppercase" maxlength="16"></div>
+                                        <div class="col-md-8"><label class="fw-bold">Luogo Nascita</label><input type="text" id="acc_luogo" class="form-control"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Provincia</label><input type="text" id="acc_prov" class="form-control" maxlength="2"></div>
+                                        <div class="col-md-8"><label class="fw-bold">Residenza</label><input type="text" id="acc_residenza" class="form-control"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Prov. Residenza</label><input type="text" id="acc_provResidenza" class="form-control" maxlength="2"></div>
+                                        <div class="col-md-6"><label class="fw-bold text-primary">N° Tessera</label><input type="text" id="acc_tessera" class="form-control border-primary"></div>
+                                        <div class="col-md-6"><label class="fw-bold text-danger">Scadenza</label><input type="date" id="acc_scadenza" class="form-control border-danger"></div>
+                                    </div>
+                                    <div class="mt-4 d-flex gap-2">
+                                        <button type="submit" class="btn btn-success btn-lg px-5" id="btnAccSubmit"><i class="fas fa-save"></i> Salva Accompagnatore</button>
+                                        <button type="button" class="btn btn-secondary btn-lg" id="btnAccCancel" onclick="cancelEdit('acc')">Indietro / Annulla</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEZIONE TRASFERTE ATTIVE -->
+        <div id="tripTab" class="section-container d-none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-bold text-primary"><i class="fas fa-bus"></i> Gestione Trasferte</h4>
+                <button class="btn btn-success" onclick="createNewTrip()"><i class="fas fa-plus"></i> Nuova Trasferta</button>
+            </div>
+            <div id="activeTripsContainer"></div>
+        </div>
+
+        <!-- SEZIONE ARCHIVIO -->
+        <div id="archiveTab" class="section-container d-none">
+            <div class="card">
+                <div class="card-header bg-secondary">
+                    <h5 class="mb-0"><i class="fas fa-archive"></i> Archivio Trasferte Concluse</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead><tr>
+                                <th>Nome Trasferta</th><th>Data</th><th>Partecipanti</th><th>Azioni</th>
+                            </tr></thead>
+                            <tbody id="tbodyArchive"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- FIREBASE CONFIGURATION WITH CORRECT URL -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    <!-- PDF Preview Modal -->
+    <div class="modal fade" id="pdfPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Anteprima PDF</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <iframe id="pdfPreviewIframe"></iframe>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                    <button type="button" class="btn btn-primary" onclick="printFromPreview()"><i class="fas fa-print"></i> Stampa</button>
+                    <button type="button" class="btn btn-success" onclick="saveFromPreview()"><i class="fas fa-download"></i> Salva PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBXmydyeKbs4KeOEySg1-FH9D9ljlZkPdI",
-            authDomain: "clubnapoliapp-9ab70.firebaseapp.com",
-            databaseURL: "https://clubnapoliapp-9ab70-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "clubnapoliapp-9ab70",
-            storageBucket: "clubnapoliapp-9ab70.firebasestorage.app",
-            messagingSenderId: "1030242125780",
-            appId: "1:1030242125780:web:78147fc6ac7ca45c833841",
-            measurementId: "G-MX7DMKFSTX"
-        };
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 
-        let app, db;
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getDatabase(app);
-            const dbRef = ref(db, 'clubData');
-            
-            onValue(dbRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    window.appData = data;
-                    // FIX: Ensure print lists exist
-                    if(!window.appData.printExpired) window.appData.printExpired = [];
-                    if(!window.appData.printExpiring) window.appData.printExpiring = [];
-                    
-                    window.renderAll();
-                    updateStatus(true);
-                } else {
-                    // If empty DB, check local
-                    if(!window.appData || !window.appData.soci) {
-                        const local = localStorage.getItem('clubNapoliData');
-                        if(local) {
-                            try {
-                                window.appData = JSON.parse(local);
-                                // FIX: Ensure print lists exist on local load
-                                if(!window.appData.printExpired) window.appData.printExpired = [];
-                                if(!window.appData.printExpiring) window.appData.printExpiring = [];
-
-                                if(window.appData.soci) window.saveDataOnline();
-                            } catch(e) {}
-                        }
-                    }
-                }
-            }, (error) => {
-                console.error("Errore lettura Firebase:", error);
-                updateStatus(false);
-            });
-        } catch(e) {
-            console.error("Firebase config error:", e);
-            updateStatus(false);
-        }
-
-        window.saveDataOnline = function() {
-            if(db && window.appData) {
-                updateStatus(null);
-                try { localStorage.setItem('clubNapoliData', JSON.stringify(window.appData)); } catch(e){}
-                set(ref(db, 'clubData'), window.appData)
-                    .then(() => updateStatus(true))
-                    .catch((err) => { console.error(err); updateStatus(false); });
-            }
-        };
-
-        function updateStatus(online) {
-            const el = document.getElementById('cloud-status');
-            if(online === true) { el.innerHTML = '<i class="fa-solid fa-cloud"></i> Online'; el.className = 'status-ok'; } 
-            else if(online === false) { el.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Offline'; el.className = 'status-err'; } 
-            else { el.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> Sync...'; el.className = 'status-sync'; }
-        }
-    </script>
-
-    <!-- MAIN LOGIC - PUBLIC FUNCTIONS -->
     <script>
-        // 1. DEFINE GLOBAL VARS IMMEDIATELY
-        window.appData = { 
-            soci: [], 
-            accompagnatori: [], 
-            trasfertaAttiva: [], 
-            archivioTrasferte: [], 
-            currentTripInfo: null, 
-            customLogo: null,
-            printExpired: [], // FIX: Persisted in appData
-            printExpiring: [] // FIX: Persisted in appData
-        };
-        
-        let editState = { isEditing: false, id: null, type: null };
-
-        // 2. EXPOSE ALL FUNCTIONS TO WINDOW
-        window.handleFormSubmit = function(e, type) {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const obj = Object.fromEntries(formData.entries());
-
-            if (editState.isEditing && editState.type === type) {
-                const index = window.appData[type].findIndex(m => m.id === editState.id);
-                if (index !== -1) {
-                    obj.id = editState.id;
-                    obj.evidenziato = window.appData[type][index].evidenziato;
-                    window.appData[type][index] = obj;
-                    
-                    window.appData.trasfertaAttiva.forEach(t => { if(t.refId === obj.id) { t.nome = obj.nome; t.cognome = obj.cognome; } });
-                    if(window.appData.archivioTrasferte) { window.appData.archivioTrasferte.forEach(arch => { arch.list.forEach(t => { if(t.refId === obj.id) { t.nome = obj.nome; t.cognome = obj.cognome; } }); }); }
-                    
-                    cancelEdit(type); syncToArchiveIfLinked(); if(window.saveDataOnline) window.saveDataOnline();
-                    alert("Modifica salvata!");
-                }
-            } else {
-                if (obj.cf && window.appData[type].some(m => m.cf && m.cf.toUpperCase() === obj.cf.toUpperCase())) { alert("Codice Fiscale già presente!"); return; }
-                obj.id = Date.now().toString(); obj.evidenziato = false;
-                if(!window.appData[type]) window.appData[type] = [];
-                window.appData[type].push(obj);
-                e.target.reset(); if(window.saveDataOnline) window.saveDataOnline();
-            }
+        // ==========================================
+        // 1. DATA STRUCTURE & PERSISTENCE
+        // ==========================================
+        let appData = {
+            soci: [],
+            accompagnatori: [],
+            trasferteAttive: [], 
+            archivioTrasferte: [],
+            renewalSeason: "",
+            renewalFilter: "all",
+            deletedArchiveIds: [],
+            deletedMemberIds: [],
+            _lastModified: 0
         };
 
-        window.renderAll = function() {
-            if(!window.appData.printExpired) window.appData.printExpired = [];
-            if(!window.appData.printExpiring) window.appData.printExpiring = [];
+        let tempPDFBlobUrl = null; 
+        let tempPDFDoc = null; 
+        let currentPdfFileName = "Documento.pdf";
 
-            window.renderTable('soci'); window.renderTable('accompagnatori'); window.renderTrip(); window.renderArchive();
-            document.getElementById('count-soci').innerText = window.appData.soci ? window.appData.soci.length : 0;
-            document.getElementById('count-acc').innerText = window.appData.accompagnatori ? window.appData.accompagnatori.length : 0;
-            const tripHeader = document.getElementById('trip-header-title');
-            let title = '<i class="fa-solid fa-bus"></i> Gestione Trasferta';
-            if(window.appData.currentTripInfo && window.appData.currentTripInfo.name) title += `: <span class="text-warning">${window.appData.currentTripInfo.name}</span>`;
-            title += ` <button class="btn btn-sm btn-outline-light border-0 ms-2" onclick="renameCurrentTrip()"><i class="fa-solid fa-pen-to-square"></i></button>`;
-            if(tripHeader) tripHeader.innerHTML = title;
-            if(window.appData.customLogo) { document.getElementById('app-logo').src = window.appData.customLogo; updateAppIcons(window.appData.customLogo); }
-            updatePrintButtons();
-        };
+        document.addEventListener("DOMContentLoaded", initApp);
+        document.addEventListener("click", closeAllAutocompletes);
 
-        window.renderTable = function(type, filter = "") {
-            const tbody = document.querySelector(type === 'soci' ? '#table-soci tbody' : '#table-accompagnatori tbody');
-            if(!tbody) return;
-            tbody.innerHTML = '';
-            if(!window.appData[type]) window.appData[type] = [];
-            let list = [...window.appData[type]].sort((a,b) => (a.cognome || '').localeCompare(b.cognome || ''));
-            if(filter) list = list.filter(item => (item.cognome + ' ' + item.nome).toLowerCase().includes(filter));
-
-            list.forEach((item, index) => {
-                const tr = document.createElement('tr');
-                if(item.evidenziato) tr.classList.add('highlight-row'); 
-                const nameClass = item.sesso === 'M' ? 'name-male' : 'name-female';
-                
-                // LOGICA SEMAFORO SCADENZA + CLICK (Persistent)
-                let scadenzaHtml = '-';
-                if(item.scadenza) {
-                    const today = new Date();
-                    today.setHours(0,0,0,0);
-                    const exp = new Date(item.scadenza);
-                    
-                    let icon = '';
-                    if(exp < today) {
-                        // SCADUTA (ROSSO) - CLICKABLE
-                        const isSelected = window.appData.printExpired && window.appData.printExpired.includes(item.id);
-                        const iconClass = isSelected ? 'fa-print' : 'fa-circle';
-                        const titleTxt = isSelected ? 'Selezionato per stampa' : 'Clicca per aggiungere alla stampa scaduti';
-                        icon = `<i class="fa-solid ${iconClass} text-danger ms-2" style="cursor:pointer;" onclick="toggleExpiredSelection('${item.id}')" title="${titleTxt}"></i>`;
-                    } else {
-                        // DATA FUTURA
-                        const threeMonths = new Date(); threeMonths.setMonth(today.getMonth() + 3);
-                        if(exp <= threeMonths) {
-                            // MENO DI 3 MESI (ARANCIONE) - CLICKABLE
-                            const isSelected = window.appData.printExpiring && window.appData.printExpiring.includes(item.id);
-                            const iconClass = isSelected ? 'fa-print' : 'fa-circle';
-                            const titleTxt = isSelected ? 'Selezionato per stampa' : 'Clicca per aggiungere alla stampa in scadenza';
-                            icon = `<i class="fa-solid ${iconClass} text-warning ms-2" style="cursor:pointer;" onclick="toggleExpiringSelection('${item.id}')" title="${titleTxt}"></i>`;
-                        } else {
-                            // OLTRE 3 MESI (VERDE)
-                            icon = '<i class="fa-solid fa-circle text-success ms-2" title="Valida"></i>';
-                        }
-                    }
-                    scadenzaHtml = formatDateIT(item.scadenza) + icon;
-                }
-
-                tr.innerHTML = `
-                    <td class="text-center"><button class="btn btn-sm btn-success rounded-circle" onclick="addToTrip('${item.id}', '${type}')"><i class="fa-solid fa-plus"></i></button></td>
-                    <td class="text-center">${index + 1}</td>
-                    <td class="${nameClass} name-cell-large text-uppercase">${item.cognome} ${item.nome}</td>
-                    <td>${item.luogo || ''} (${item.prov || ''}) - ${formatDateIT(item.dataNascita)}</td>
-                    <td>${item.residenza || ''} (${item.provResidenza || ''})</td>
-                    <td>${item.cf || ''}</td>
-                    <td class="text-center">${item.tessera || '-'}</td>
-                    <td class="text-center">${scadenzaHtml}</td>
-                    <td class="text-center">${item.codSic || '-'}</td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-outline-warning action-btn border-0" onclick="loadMemberForEdit('${item.id}', '${type}')"><i class="fa-solid fa-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger action-btn border-0" onclick="deleteMember('${item.id}', '${type}')"><i class="fa-solid fa-trash"></i></button>
-                        <button class="btn btn-sm btn-outline-success action-btn border-0" onclick="toggleHighlight('${item.id}', '${type}')"><i class="fa-solid fa-highlighter"></i></button>
-                    </td>`;
-                tbody.appendChild(tr);
-            });
-        };
-
-        window.renderTrip = function() {
-            const tbody = document.querySelector('#table-trip tbody'); if(!tbody) return; tbody.innerHTML = '';
-            if(!window.appData.trasfertaAttiva) window.appData.trasfertaAttiva = [];
-            document.getElementById('trip-count').innerText = window.appData.trasfertaAttiva.length;
-
-            window.appData.trasfertaAttiva.forEach((item, index) => {
-                let fullData = {};
-                if(item.originType === 'soci' && window.appData.soci) fullData = window.appData.soci.find(s => s.id === item.refId) || {};
-                else if(window.appData.accompagnatori) fullData = window.appData.accompagnatori.find(a => a.id === item.refId) || {};
-                const tr = document.createElement('tr');
-                if(item.highlightColor === 'green') tr.classList.add('trip-highlight');
-                const sesso = item.sesso || fullData.sesso || 'M';
-                const nameClass = sesso === 'M' ? 'name-male' : 'name-female';
-                tr.innerHTML = `
-                    <td class="fw-bold text-center align-middle">${index + 1}</td>
-                    <td>
-                        <div class="nominativo-container">
-                            <span class="${nameClass} text-uppercase">${item.cognome} ${item.nome}</span>
-                            ${item.note ? `<span class="text-danger fw-bold ms-2 small">(${item.note})</span>` : ''}
-                        </div>
-                        <div class="data-detail">Nato: ${fullData.luogo || ''} (${fullData.prov || ''}) - ${formatDateIT(fullData.dataNascita)}</div>
-                        <div class="data-detail">Res: ${fullData.residenza || ''} (${fullData.provResidenza || ''})</div>
-                        <div class="data-detail">CF: ${fullData.cf || ''} | Tess: ${fullData.tessera || '-'}</div>
-                        ${item.location ? `<div class="badge bg-info text-dark mt-1 ms-2"><i class="fa-solid fa-location-dot"></i> ${item.location}</div>` : ''}
-                    </td>
-                    <td class="align-middle text-center">
-                        <div class="trip-actions-btn">
-                            <button class="btn btn-sm btn-outline-success" onclick="tripAction('${item.tripId}', 'highlight')"><i class="fa-solid fa-marker"></i></button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="tripAction('${item.tripId}', 'note')"><i class="fa-solid fa-note-sticky"></i></button>
-                            <button class="btn btn-sm btn-outline-primary" onclick="tripAction('${item.tripId}', 'pos')"><i class="fa-solid fa-chair"></i></button>
-                            <button class="btn btn-sm btn-outline-dark" onclick="tripAction('${item.tripId}', 'edit')"><i class="fa-solid fa-pencil"></i></button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="tripAction('${item.tripId}', 'delete')"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </td>`;
-                tbody.appendChild(tr);
-            });
-        };
-
-        window.renderArchive = function() {
-            const ul = document.getElementById('archive-list'); if(!ul) return; ul.innerHTML = '';
-            if(!window.appData.archivioTrasferte) window.appData.archivioTrasferte = [];
-            const list = [...window.appData.archivioTrasferte].reverse();
-            const emptyMsg = document.getElementById('empty-archive-msg');
-            if(list.length === 0) { if(emptyMsg) emptyMsg.style.display = 'block'; } else { if(emptyMsg) emptyMsg.style.display = 'none'; }
-            list.forEach(arch => {
-                const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                li.innerHTML = `<div><strong>${arch.name}</strong> <small>(${arch.date})</small> <span class="archive-count-badge">${arch.list.length}</span></div> <div> <button class="btn btn-sm btn-outline-secondary me-1" onclick="printArchiveTrip('${arch.id}')"><i class="fa-solid fa-print"></i></button> <button class="btn btn-sm btn-outline-primary" onclick="restoreTrip('${arch.id}')"><i class="fa-solid fa-folder-open"></i></button> <button class="btn btn-sm btn-outline-danger" onclick="deleteArchive('${arch.id}')"><i class="fa-solid fa-trash"></i></button> </div>`;
-                ul.appendChild(li);
-            });
-        };
-
-        // --- SEARCH & UTILS ---
-        window.globalSearch = function(query) {
-            const inputSoci = document.getElementById('search-soci');
-            const inputAcc = document.getElementById('search-acc');
-            if(inputSoci && inputSoci.value !== query) inputSoci.value = query;
-            if(inputAcc && inputAcc.value !== query) inputAcc.value = query;
-            if(!query) { window.renderTable('soci'); window.renderTable('accompagnatori'); return; }
-            document.getElementById('list-soci-body').style.display = 'block';
-            document.getElementById('list-acc-body').style.display = 'block';
-            const lower = query.toLowerCase();
-            window.renderTable('soci', lower); window.renderTable('accompagnatori', lower);
-        };
-
-        function formatDateIT(isoDate) { if (!isoDate) return ''; const parts = isoDate.split('-'); return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : isoDate; }
-        function updateSexColor(select) { if(select.value === 'M') { select.style.backgroundColor = '#e3f2fd'; select.style.color = '#0d6efd'; } else { select.style.backgroundColor = '#fce4ec'; select.style.color = '#d63384'; } }
-        function toggleSection(id) { const el = document.getElementById(id); if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
-        function toggleMaximize(cardId) { const card = document.getElementById(cardId); card.classList.toggle('card-fullscreen'); const body = card.querySelector('.card-body'); if(body.style.display === 'none') body.style.display = 'block'; }
-        function updateAppIcons(base64) { document.getElementById('dynamic-favicon').href = base64; document.getElementById('dynamic-apple-icon').href = base64; }
-
-        // --- ACTIONS ---
-        window.deleteMember = function(id, type) { if(confirm("Eliminare definitivamente?")) { window.appData[type] = window.appData[type].filter(m => m.id !== id); window.appData.trasfertaAttiva = window.appData.trasfertaAttiva.filter(t => t.refId !== id); syncToArchiveIfLinked(); if(window.saveDataOnline) window.saveDataOnline(); } };
-        window.loadMemberForEdit = function(id, type) { const item = window.appData[type].find(m => m.id === id); if(!item) return; document.getElementById(type === 'soci' ? 'form-soci-body' : 'form-acc-body').style.display = 'block'; const cardId = type === 'soci' ? 'card-soci-form' : 'card-acc-form'; document.getElementById(cardId).scrollIntoView({ behavior: 'smooth', block: 'center' }); document.getElementById(cardId).classList.add('editing-mode'); const form = document.getElementById(type === 'soci' ? 'formSoci' : 'formAcc'); for (const key in item) { if (form.elements[key]) { form.elements[key].value = item[key]; if(key === 'sesso' && form.elements[key].tagName === 'SELECT') updateSexColor(form.elements[key]); } } editState = { isEditing: true, id: id, type: type }; const btnSubmit = document.getElementById(type === 'soci' ? 'btn-submit-soci' : 'btn-submit-acc'); btnSubmit.innerText = "Salva Modifiche"; btnSubmit.classList.add('btn-warning'); document.getElementById(type === 'soci' ? 'btn-cancel-soci' : 'btn-cancel-acc').style.display = 'inline-block'; };
-        window.cancelEdit = function(type) { document.getElementById(type === 'soci' ? 'formSoci' : 'formAcc').reset(); editState = { isEditing: false, id: null, type: null }; const cardId = type === 'soci' ? 'card-soci-form' : 'card-acc-form'; document.getElementById(cardId).classList.remove('editing-mode'); const btnSubmit = document.getElementById(type === 'soci' ? 'btn-submit-soci' : 'btn-submit-acc'); btnSubmit.innerText = "Inserisci"; btnSubmit.classList.remove('btn-warning'); document.getElementById(type === 'soci' ? 'btn-cancel-soci' : 'btn-cancel-acc').style.display = 'none'; };
-        window.toggleHighlight = function(id, type) { const item = window.appData[type].find(m => m.id === id); if(item) { item.evidenziato = !item.evidenziato; if(window.saveDataOnline) window.saveDataOnline(); } };
-        window.addToTrip = function(refId, originType) { const person = window.appData[originType].find(p => p.id === refId); if(!person) return; if(window.appData.trasfertaAttiva.some(t => t.refId === refId)) { alert("Già presente!"); return; } window.appData.trasfertaAttiva.push({ tripId: Date.now().toString() + Math.random().toString(), refId: refId, originType: originType, nome: person.nome, cognome: person.cognome, sesso: person.sesso, note: "", highlightColor: "", location: "" }); syncToArchiveIfLinked(); if(window.saveDataOnline) window.saveDataOnline(); };
-        
-        // --- TRIP ACTIONS (MODIFICATO QUI PER GESTIRE POSTO/RIORDINO) ---
-        window.tripAction = function(tripId, action) { 
-            // Recupera l'elemento
-            const index = window.appData.trasfertaAttiva.findIndex(t => t.tripId === tripId);
-            if(index === -1) return;
-            const item = window.appData.trasfertaAttiva[index];
-
-            if(action === 'delete') {
-                window.appData.trasfertaAttiva = window.appData.trasfertaAttiva.filter(t => t.tripId !== tripId);
-            } 
-            else if (action === 'highlight') {
-                item.highlightColor = item.highlightColor === 'green' ? '' : 'green';
-            } 
-            else if (action === 'note') {
-                item.note = prompt("Nota:", item.note) || item.note;
-            } 
-            else if (action === 'pos') {
-                // *** NUOVA LOGICA: RIORDINO LISTA ***
-                const currentPos = index + 1;
-                const newPosStr = prompt(`Sposta dalla posizione ${currentPos} alla posizione:`, currentPos);
-                
-                if (newPosStr !== null) {
-                    const newPos = parseInt(newPosStr);
-                    const total = window.appData.trasfertaAttiva.length;
-
-                    if (!isNaN(newPos) && newPos >= 1 && newPos <= total) {
-                        // Rimuovi dalla vecchia posizione
-                        const [movedItem] = window.appData.trasfertaAttiva.splice(index, 1);
-                        // Inserisci nella nuova posizione (index base 0)
-                        window.appData.trasfertaAttiva.splice(newPos - 1, 0, movedItem);
-                    } else {
-                        alert(`Inserisci un numero valido tra 1 e ${total}`);
-                        return; // Esce senza salvare
-                    }
-                } else {
-                    return; // Utente ha annullato
-                }
-            } 
-            else if (action === 'edit') { 
-                const nn = prompt("Modifica nome visualizzato:", item.nome + " " + item.cognome); 
-                if(nn) { 
-                    const parts = nn.split(" "); 
-                    if(parts.length>0) item.cognome = parts[0]; 
-                    if(parts.length>1) item.nome = parts.slice(1).join(" "); 
-                } 
-            } 
+        function initApp() {
+            loadData();
+            initRenewalSeasons();
+            updateLogoUI();
             
-            syncToArchiveIfLinked(); 
-            if(window.saveDataOnline) window.saveDataOnline();
-            window.renderTrip(); // Rerenderizza per mostrare il nuovo ordine
-        };
-
-        window.closeTrip = function() { if(window.appData.trasfertaAttiva.length === 0) { alert("Lista vuota."); return; } if (window.appData.currentTripInfo && window.appData.currentTripInfo.name) { const idx = window.appData.archivioTrasferte.findIndex(a => String(a.id) === String(window.appData.currentTripInfo.id)); if(idx !== -1) { window.appData.archivioTrasferte[idx].list = JSON.parse(JSON.stringify(window.appData.trasfertaAttiva)); window.appData.archivioTrasferte[idx].count = window.appData.trasfertaAttiva.length; window.appData.archivioTrasferte[idx].date = new Date().toLocaleDateString(); alert("Salvata su esistente!"); } else window.createNewArchive(window.appData.currentTripInfo.name); } else { const name = prompt("Nome Trasferta:"); if(name) window.createNewArchive(name); else return; } window.appData.trasfertaAttiva = []; window.appData.currentTripInfo = null; if(window.saveDataOnline) window.saveDataOnline(); };
-        window.createNewArchive = function(name) { if(!window.appData.archivioTrasferte) window.appData.archivioTrasferte = []; window.appData.archivioTrasferte.push({ id: Date.now().toString(), name: name, date: new Date().toLocaleDateString(), count: window.appData.trasfertaAttiva.length, list: JSON.parse(JSON.stringify(window.appData.trasfertaAttiva)) }); };
-        window.restoreTrip = function(id) { if(window.appData.trasfertaAttiva.length > 0 && !confirm("Sovrascrivere attuale?")) return; const archive = window.appData.archivioTrasferte.find(a => String(a.id) === String(id)); if(archive) { window.appData.trasfertaAttiva = JSON.parse(JSON.stringify(archive.list)); window.appData.currentTripInfo = { id: archive.id, name: archive.name }; if(window.saveDataOnline) window.saveDataOnline(); alert("Caricata!"); } };
-        window.deleteArchive = function(id) { if(confirm("Eliminare definitivamente?")) { window.appData.archivioTrasferte = window.appData.archivioTrasferte.filter(a => String(a.id) !== String(id)); if(window.saveDataOnline) window.saveDataOnline(); } };
-        window.renameCurrentTrip = function() { const newName = prompt("Nome Trasferta:", window.appData.currentTripInfo?.name || ""); if (newName) { if (!window.appData.currentTripInfo) window.appData.currentTripInfo = { id: Date.now().toString(), name: "" }; window.appData.currentTripInfo.name = newName.trim(); syncToArchiveIfLinked(); if(window.saveDataOnline) window.saveDataOnline(); } };
-        
-        // --- FUNZIONI PER STAMPA SCADUTI / IN SCADENZA (CON SALVATAGGIO) ---
-        window.toggleExpiredSelection = function(id) {
-            if(!window.appData.printExpired) window.appData.printExpired = [];
-            
-            if(window.appData.printExpired.includes(id)) {
-                window.appData.printExpired = window.appData.printExpired.filter(item => item !== id);
-            } else {
-                window.appData.printExpired.push(id);
+            if (window.__INJECTED_DATA__) {
+                mergeData(window.__INJECTED_DATA__, appData);
             }
-            if(window.saveDataOnline) window.saveDataOnline(); // SALVA SUBITO
-            window.renderTable('soci'); window.renderTable('accompagnatori'); updatePrintButtons();
-        };
-
-        window.toggleExpiringSelection = function(id) {
-            if(!window.appData.printExpiring) window.appData.printExpiring = [];
-
-            if(window.appData.printExpiring.includes(id)) {
-                window.appData.printExpiring = window.appData.printExpiring.filter(item => item !== id);
-            } else {
-                window.appData.printExpiring.push(id);
-            }
-            if(window.saveDataOnline) window.saveDataOnline(); // SALVA SUBITO
-            window.renderTable('soci'); window.renderTable('accompagnatori'); updatePrintButtons();
-        };
-
-        function updatePrintButtons() {
-            const expiredList = window.appData.printExpired || [];
-            const expiringList = window.appData.printExpiring || [];
-
-            const btnExp = document.getElementById('btn-print-expired');
-            const countSpanExp = document.getElementById('expired-count');
-            if(expiredList.length > 0) { btnExp.style.display = 'inline-block'; countSpanExp.innerText = expiredList.length; } else { btnExp.style.display = 'none'; }
-
-            const btnIng = document.getElementById('btn-print-expiring');
-            const countSpanIng = document.getElementById('expiring-count');
-            if(expiringList.length > 0) { btnIng.style.display = 'inline-block'; countSpanIng.innerText = expiringList.length; } else { btnIng.style.display = 'none'; }
+            renderAll();
         }
 
-        window.printExpiredPDF = function() {
-            if(!window.appData.printExpired || window.appData.printExpired.length === 0) return;
-            generateListPDF(window.appData.printExpired, "Elenco Tessere Scadute", [220, 53, 69]); // Rosso
-        };
+        function getCurrentFootballSeason() {
+            const d = new Date();
+            let y = d.getFullYear();
+            let m = d.getMonth(); 
+            if (m >= 5) return `${y}/${y+1}`;
+            else return `${y-1}/${y}`;
+        }
+        
+        function getPreviousFootballSeason() {
+            const current = getCurrentFootballSeason();
+            const parts = current.split('/');
+            return `${parseInt(parts[0])-1}/${parseInt(parts[1])-1}`;
+        }
 
-        window.printExpiringPDF = function() {
-            if(!window.appData.printExpiring || window.appData.printExpiring.length === 0) return;
-            generateListPDF(window.appData.printExpiring, "Tessere in Scadenza", [255, 193, 7]); // Giallo/Arancio
-        };
+        function initRenewalSeasons() {
+            const current = getCurrentFootballSeason();
+            const prev = getPreviousFootballSeason();
+            const select = document.getElementById("seasonSelect");
+            select.innerHTML = `<option value="${prev}">${prev}</option><option value="${current}">${current}</option>`;
+            
+            if (!appData.renewalSeason || (appData.renewalSeason !== current && appData.renewalSeason !== prev)) {
+                appData.renewalSeason = current;
+                saveDataImmediate();
+            }
+            select.value = appData.renewalSeason;
+            document.getElementById("renewalFilter").value = appData.renewalFilter;
+        }
 
-        function generateListPDF(idList, title, color) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            if(window.appData.customLogo) { try { doc.addImage(window.appData.customLogo, 'PNG', 14, 10, 25, 25); } catch(e){} }
-            
-            doc.setFontSize(16); doc.setTextColor(18, 47, 103);
-            doc.text("CLUB NAPOLI PARTENOPEI MODENA", 45, 20);
-            doc.setFontSize(14); doc.setTextColor(color[0], color[1], color[2]);
-            doc.text(title, 45, 28);
-            doc.setFontSize(10); doc.setTextColor(0);
-            doc.text(`Data Stampa: ${new Date().toLocaleDateString()}`, 45, 34);
+        function setRenewalSeason(season) {
+            appData.renewalSeason = season;
+            saveDataImmediate();
+            renderTable('soci');
+        }
 
-            const tableRows = [];
-            const allMembers = [...(window.appData.soci || []), ...(window.appData.accompagnatori || [])];
-            
-            idList.forEach(id => {
-                const item = allMembers.find(m => m.id === id);
-                if(item) {
-                    tableRows.push([
-                        `${item.cognome} ${item.nome}`,
-                        formatDateIT(item.scadenza),
-                        item.tessera || '-'
-                    ]);
+        function setRenewalFilter(filter) {
+            appData.renewalFilter = filter;
+            saveDataImmediate();
+            renderTable('soci');
+        }
+
+        // ==========================================
+        // 2. CORE STORAGE LOGIC
+        // ==========================================
+        function loadData() {
+            try {
+                const stored = localStorage.getItem('clubNapoliData');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    appData = { ...appData, ...parsed };
                 }
+            } catch(e) { console.error("Errore caricamento dati", e); }
+            normalizeData();
+        }
+
+        function normalizeData() {
+            if (!appData.soci) appData.soci = [];
+            if (!appData.accompagnatori) appData.accompagnatori = [];
+            if (!appData.archivioTrasferte) appData.archivioTrasferte = [];
+            if (!appData.deletedArchiveIds) appData.deletedArchiveIds = [];
+            if (!appData.deletedMemberIds) appData.deletedMemberIds = [];
+            if (!appData.trasferteAttive) appData.trasferteAttive = [];
+
+            appData.soci.forEach(s => {
+                if(!s.rinnovi) s.rinnovi = {};
+                if(s.evidenziato === undefined) s.evidenziato = false;
+            });
+            
+            appData.soci = appData.soci.filter(s => !appData.deletedMemberIds.includes(s.id));
+            appData.accompagnatori = appData.accompagnatori.filter(a => !appData.deletedMemberIds.includes(a.id));
+            appData.archivioTrasferte = appData.archivioTrasferte.filter(a => !appData.deletedArchiveIds.includes(a.id));
+            
+            appData.trasferteAttive.forEach(t => {
+                t.list = t.list.filter(p => !appData.deletedMemberIds.includes(p.refId));
+                t.list.forEach(p => {
+                    if(p.nota === undefined) p.nota = '';
+                    if(p.notaColor === undefined) p.notaColor = '#0d6efd';
+                });
+            });
+        }
+
+        function saveDataImmediate() {
+            appData._lastModified = Date.now();
+            normalizeData();
+            localStorage.setItem('clubNapoliData', JSON.stringify(appData));
+            updateStatus("Salvato Localmente");
+        }
+
+        function mergeData(newData, currentData) {
+            if (newData._lastModified > currentData._lastModified) {
+                appData = { ...newData };
+                normalizeData();
+                saveDataImmediate();
+                renderAll();
+            }
+        }
+
+        function updateStatus(msg) {
+            document.getElementById("statusCloud").innerHTML = `<i class="fas fa-check-circle text-success"></i> ${msg}`;
+        }
+
+        function updateLogoUI() {
+            const custom = localStorage.getItem('clubNapoliLogo');
+            document.getElementById('headerLogo').src = custom || DEFAULT_LOGO;
+        }
+
+        function importLogo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX = 300;
+                    let w = img.width; let h = img.height;
+                    if (w > h && w > MAX) { h *= MAX/w; w = MAX; }
+                    else if (h > MAX) { w *= MAX/h; h = MAX; }
+                    canvas.width = w; canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    const resized = canvas.toDataURL('image/jpeg', 0.8);
+                    localStorage.setItem('clubNapoliLogo', resized);
+                    updateLogoUI();
+                    Swal.fire('Fatto', 'Logo aggiornato!', 'success');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        function getActiveLogo() {
+            return localStorage.getItem('clubNapoliLogo') || DEFAULT_LOGO;
+        }
+
+        // ==========================================
+        // 4. RENDERING & UI LOGIC
+        // ==========================================
+        function renderAll() {
+            renderTable('soci');
+            renderTable('acc');
+            renderTrips();
+            renderArchive();
+        }
+
+        function toggleSection(tabId) {
+            document.querySelectorAll('.section-container').forEach(el => el.classList.add('d-none'));
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.remove('d-none');
+            
+            const links = document.querySelectorAll('.nav-link');
+            links.forEach(l => {
+                if(l.getAttribute('onclick').includes(tabId)) l.classList.add('active');
+            });
+
+            // Se cambio tab principale, resetto sempre i moduli form alla lista base
+            if(tabId === 'sociTab') toggleForm('soci', false);
+            if(tabId === 'accTab') toggleForm('acc', false);
+        }
+
+        function toggleMaximize(cardId) {
+            const card = document.getElementById(cardId);
+            card.classList.toggle('fullscreen');
+            const icon = card.querySelector('.fa-expand, .fa-compress');
+            if (icon) {
+                icon.classList.toggle('fa-expand');
+                icon.classList.toggle('fa-compress');
+            }
+        }
+
+        // GESTIONE TOGGLE LISTA <-> FORM
+        function toggleForm(type, showForm) {
+            const listCont = document.getElementById(`${type}ListContainer`);
+            const formCont = document.getElementById(`${type}FormContainer`);
+            if (showForm) {
+                listCont.classList.add('d-none');
+                formCont.classList.remove('d-none');
+            } else {
+                formCont.classList.add('d-none');
+                listCont.classList.remove('d-none');
+            }
+        }
+
+        function checkStatus(item) {
+            if (!item.scadenza) return '';
+            const oggi = new Date();
+            const scad = new Date(item.scadenza);
+            const diff = scad - oggi;
+            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+            if (days < 0) return 'expired';
+            if (days <= 30) return 'expiring';
+            return 'valid';
+        }
+
+        function renderTable(type) {
+            const isSoci = type === 'soci';
+            let data = isSoci ? appData.soci : appData.accompagnatori;
+            const search = document.getElementById(isSoci ? 'searchSoci' : 'searchAcc').value.toLowerCase();
+            
+            data.sort((a,b) => (a.cognome+" "+a.nome).localeCompare(b.cognome+" "+b.nome));
+
+            let countRinnovati = 0;
+            if (isSoci) {
+                const season = appData.renewalSeason;
+                const filter = appData.renewalFilter;
+                
+                data.forEach(s => { if(s.rinnovi && s.rinnovi[season]) countRinnovati++; });
+                
+                if (filter === "renewed") data = data.filter(s => s.rinnovi && s.rinnovi[season]);
+                else if (filter === "missing") data = data.filter(s => !s.rinnovi || !s.rinnovi[season]);
+                
+                document.getElementById('renewalCounterText').innerText = `Rinnovati ${season}: ${countRinnovati} / ${appData.soci.length}`;
+            }
+
+            if (search) {
+                data = data.filter(item => {
+                    const str = `${item.nome} ${item.cognome} ${item.cf} ${item.tessera} ${item.residenza} ${item.codSic||''} ${item.luogo||''} ${item.prov||''}`.toLowerCase();
+                    return str.includes(search);
+                });
+            }
+
+            const tbody = document.getElementById(isSoci ? 'tbodySoci' : 'tbodyAcc');
+            tbody.innerHTML = '';
+            document.getElementById(isSoci ? 'countSoci' : 'countAcc').innerText = data.length;
+
+            data.forEach(item => {
+                const status = checkStatus(item);
+                let trClass = item.evidenziato ? 'row-highlight' : '';
+                
+                let dateTdClass = '';
+                if (status === 'expired') dateTdClass = 'date-expired';
+                if (status === 'expiring') dateTdClass = 'date-expiring';
+
+                const tr = document.createElement('tr');
+                tr.className = trClass;
+
+                let html = `<td><button class="btn btn-sm btn-success shadow-sm" onclick="addToTrip('${item.id}', '${isSoci?'soci':'acc'}')" title="Aggiungi in Trasferta"><i class="fas fa-bus"></i></button></td>`;
+                html += `<td class="fw-bold">${item.cognome} ${item.nome}</td>`;
+                html += `<td>${formatDateIT(item.dataNascita)}</td>`;
+                html += `<td>${item.residenza || ''} ${item.provResidenza ? `(${item.provResidenza})`:''}</td>`;
+                html += `<td class="text-uppercase">${item.cf || ''}</td>`;
+                html += `<td>${item.tessera || ''}</td>`;
+                html += `<td><span class="${dateTdClass}">${formatDateIT(item.scadenza)}</span></td>`;
+                
+                if (isSoci) {
+                    const hasRenewed = item.rinnovi && item.rinnovi[appData.renewalSeason];
+                    const rClass = hasRenewed ? 'bg-success' : 'bg-danger';
+                    const rText = hasRenewed ? 'SI' : 'NO';
+                    html += `<td><span class="badge ${rClass} badge-rinnovo shadow-sm" onclick="toggleRenewal('${item.id}')">${rText}</span></td>`;
+                }
+
+                if (isSoci) html += `<td>${item.codSic || ''}</td>`;
+
+                html += `
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="loadMemberForEdit('${item.id}', '${type}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteMember('${item.id}', '${type}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function formatDateIT(d) {
+            if (!d) return '';
+            const parts = d.split('-');
+            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            return d;
+        }
+
+        // ==========================================
+        // 5. CRUD OPERATIONS E RINNOVI
+        // ==========================================
+        function handleFormSubmit(e, type) {
+            e.preventDefault();
+            const idField = document.getElementById(`${type}_id`).value;
+            const isNew = !idField;
+            const item = {
+                id: isNew ? Date.now().toString() : idField,
+                nome: document.getElementById(`${type}_nome`).value.trim(),
+                cognome: document.getElementById(`${type}_cognome`).value.trim(),
+                sesso: document.getElementById(`${type}_sesso`).value,
+                dataNascita: document.getElementById(`${type}_dataNascita`).value,
+                luogo: document.getElementById(`${type}_luogo`).value.trim(),
+                prov: document.getElementById(`${type}_prov`).value.toUpperCase(),
+                cf: document.getElementById(`${type}_cf`).value.toUpperCase(),
+                residenza: document.getElementById(`${type}_residenza`).value.trim(),
+                provResidenza: document.getElementById(`${type}_provResidenza`).value.toUpperCase(),
+                tessera: document.getElementById(`${type}_tessera`).value.trim(),
+                scadenza: document.getElementById(`${type}_scadenza`).value
+            };
+
+            let list = type === 'soci' ? appData.soci : appData.accompagnatori;
+
+            if (type === 'soci') {
+                item.codSic = document.getElementById(`${type}_codSic`).value.trim();
+                if (isNew) {
+                    item.rinnovi = {}; item.evidenziato = false;
+                } else {
+                    const old = list.find(x => x.id === item.id);
+                    item.rinnovi = old ? old.rinnovi : {};
+                    item.evidenziato = old ? old.evidenziato : false;
+                }
+            } else {
+                if (isNew) item.evidenziato = false;
+                else {
+                    const old = list.find(x => x.id === item.id);
+                    item.evidenziato = old ? old.evidenziato : false;
+                }
+            }
+
+            if (isNew) list.push(item);
+            else {
+                const idx = list.findIndex(x => x.id === item.id);
+                if (idx !== -1) list[idx] = item;
+                
+                appData.trasferteAttive.forEach(trip => {
+                    const p = trip.list.find(x => x.refId === item.id && x.originType === type);
+                    if(p) { p.nome = item.nome; p.cognome = item.cognome; p.sesso = item.sesso; }
+                });
+            }
+
+            saveDataImmediate(); 
+            cancelEdit(type); 
+            renderTable(type); 
+            renderTrips();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Salvato!', showConfirmButton: false, timer: 1500 });
+        }
+
+        function loadMemberForEdit(id, type) {
+            const list = type === 'soci' ? appData.soci : appData.accompagnatori;
+            const item = list.find(x => x.id === id);
+            if (!item) return;
+
+            document.getElementById(`${type}_id`).value = item.id;
+            document.getElementById(`${type}_nome`).value = item.nome || '';
+            document.getElementById(`${type}_cognome`).value = item.cognome || '';
+            document.getElementById(`${type}_sesso`).value = item.sesso || 'M';
+            document.getElementById(`${type}_dataNascita`).value = item.dataNascita || '';
+            document.getElementById(`${type}_luogo`).value = item.luogo || '';
+            document.getElementById(`${type}_prov`).value = item.prov || '';
+            document.getElementById(`${type}_cf`).value = item.cf || '';
+            document.getElementById(`${type}_residenza`).value = item.residenza || '';
+            document.getElementById(`${type}_provResidenza`).value = item.provResidenza || '';
+            document.getElementById(`${type}_tessera`).value = item.tessera || '';
+            document.getElementById(`${type}_scadenza`).value = item.scadenza || '';
+            
+            if (type === 'soci') document.getElementById(`${type}_codSic`).value = item.codSic || '';
+
+            document.getElementById(`form${type.charAt(0).toUpperCase() + type.slice(1)}Title`).innerHTML = '<i class="fas fa-edit"></i> Modifica Modulo';
+            document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}Submit`).innerHTML = '<i class="fas fa-save"></i> Salva Modifica';
+            
+            toggleForm(type, true);
+            window.scrollTo(0,0);
+        }
+
+        function cancelEdit(type) {
+            document.getElementById(`form${type.charAt(0).toUpperCase() + type.slice(1)}`).reset();
+            document.getElementById(`${type}_id`).value = '';
+            document.getElementById(`form${type.charAt(0).toUpperCase() + type.slice(1)}Title`).innerHTML = '<i class="fas fa-user-plus"></i> Modulo Iscrizione';
+            document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}Submit`).innerHTML = '<i class="fas fa-save"></i> Salva';
+            
+            toggleForm(type, false);
+        }
+
+        function deleteMember(id, type) {
+            Swal.fire({
+                title: 'Sei sicuro?',
+                text: "L'eliminazione è irreversibile!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Sì, elimina'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (type === 'soci') appData.soci = appData.soci.filter(x => x.id !== id);
+                    else appData.accompagnatori = appData.accompagnatori.filter(x => x.id !== id);
+                    appData.deletedMemberIds.push(id);
+                    
+                    appData.trasferteAttive.forEach(trip => {
+                        trip.list = trip.list.filter(x => !(x.refId === id && x.originType === type));
+                    });
+                    
+                    saveDataImmediate(); renderTable(type); renderTrips();
+                }
+            });
+        }
+
+        function toggleRenewal(id) {
+            const item = appData.soci.find(x => x.id === id);
+            if (!item) return;
+            const season = appData.renewalSeason;
+            
+            if (item.rinnovi[season]) {
+                Swal.fire({
+                    title: 'Annullare Rinnovo?',
+                    text: `Vuoi rimuovere il rinnovo di ${item.cognome} ${item.nome} per la stagione ${season}?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sì, rimuovi',
+                    cancelButtonText: 'Annulla',
+                    confirmButtonColor: '#d33'
+                }).then((res) => {
+                    if(res.isConfirmed) {
+                        delete item.rinnovi[season];
+                        saveDataImmediate(); renderTable('soci');
+                    }
+                });
+            } else {
+                item.rinnovi[season] = true;
+                saveDataImmediate(); renderTable('soci');
+                Swal.fire({toast: true, position: 'top-end', icon: 'success', title: `${item.nome} ha rinnovato!`, showConfirmButton: false, timer: 1500});
+            }
+        }
+
+        // ==========================================
+        // 6. TRASFERTE ATTIVE E ARCHIVIO
+        // ==========================================
+        function createNewTrip() {
+            appData.trasferteAttive.push({ id: Date.now().toString(), name: "", date: "", list: [] });
+            saveDataImmediate(); renderTrips();
+            Swal.fire({toast:true, position:'top-end', icon:'success', title:'Nuova trasferta creata', showConfirmButton:false, timer:1000});
+        }
+
+        async function addToTrip(refId, originType) {
+            const list = originType === 'soci' ? appData.soci : appData.accompagnatori;
+            const item = list.find(x => x.id === refId);
+            if(!item) return;
+
+            if(appData.trasferteAttive.length === 0) {
+                Swal.fire('Attenzione', 'Devi prima creare una trasferta nel tab "Trasferte Attive".', 'warning');
+                return;
+            }
+
+            let targetTripId = appData.trasferteAttive[0].id;
+
+            if(appData.trasferteAttive.length > 1) {
+                const options = {};
+                appData.trasferteAttive.forEach(t => {
+                    options[t.id] = (t.name || 'Senza Nome') + (t.date ? ` (${formatDateIT(t.date)})` : '');
+                });
+                const { value: selectedId } = await Swal.fire({
+                    title: 'Seleziona Trasferta',
+                    text: `Aggiungi ${item.cognome} ${item.nome} a:`,
+                    input: 'select',
+                    inputOptions: options,
+                    showCancelButton: true,
+                    confirmButtonText: 'Aggiungi',
+                    cancelButtonText: 'Annulla'
+                });
+                if(!selectedId) return; 
+                targetTripId = selectedId;
+            }
+
+            const trip = appData.trasferteAttive.find(t => t.id === targetTripId);
+
+            if(trip.list.some(x => x.refId === refId && x.originType === originType)) {
+                Swal.fire({toast:true, position:'top-end', icon:'warning', title:'Già presente', showConfirmButton:false, timer:1500});
+                return;
+            }
+
+            trip.list.push({
+                tripId: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                refId: item.id,
+                originType: originType,
+                nome: item.nome,
+                cognome: item.cognome,
+                sesso: item.sesso,
+                nota: '',
+                notaColor: '#0d6efd'
+            });
+
+            saveDataImmediate(); renderTrips();
+            Swal.fire({toast:true, position:'top-end', icon:'success', title:'Aggiunto!', showConfirmButton:false, timer:1000});
+        }
+
+        function handleTripSearch(tripId) {
+            const input = document.getElementById(`tripSearch_${tripId}`);
+            const val = input.value.toLowerCase().trim();
+            const resContainer = document.getElementById(`tripSearchResults_${tripId}`);
+
+            if(val.length < 2) {
+                resContainer.classList.add('d-none');
+                return;
+            }
+
+            let results = [];
+            appData.soci.forEach(s => {
+                if(`${s.nome} ${s.cognome} ${s.cf}`.toLowerCase().includes(val)) results.push({...s, _type: 'soci'});
+            });
+            appData.accompagnatori.forEach(a => {
+                if(`${a.nome} ${a.cognome} ${a.cf}`.toLowerCase().includes(val)) results.push({...a, _type: 'acc'});
+            });
+
+            if(results.length > 0) {
+                resContainer.innerHTML = results.map(r => `
+                    <div class="autocomplete-item" onclick="addFromTripSearch('${r.id}', '${r._type}', '${tripId}')">
+                        <i class="fas ${r._type === 'soci' ? 'fa-user text-primary' : 'fa-user-friends text-secondary'}"></i> 
+                        <span class="fw-bold">${r.cognome} ${r.nome}</span> <small class="text-muted">${r.cf || ''}</small>
+                    </div>
+                `).join('');
+                resContainer.classList.remove('d-none');
+            } else {
+                resContainer.innerHTML = `<div class="p-2 text-muted">Nessun risultato</div>`;
+                resContainer.classList.remove('d-none');
+            }
+        }
+
+        function addFromTripSearch(refId, originType, tripId) {
+            document.getElementById(`tripSearch_${tripId}`).value = '';
+            document.getElementById(`tripSearchResults_${tripId}`).classList.add('d-none');
+
+            const list = originType === 'soci' ? appData.soci : appData.accompagnatori;
+            const item = list.find(x => x.id === refId);
+            const trip = appData.trasferteAttive.find(t => t.id === tripId);
+
+            if(trip.list.some(x => x.refId === refId && x.originType === originType)) {
+                Swal.fire({toast:true, position:'top-end', icon:'warning', title:'Già presente in trasferta', showConfirmButton:false, timer:1500});
+                return;
+            }
+
+            trip.list.push({
+                tripId: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                refId: item.id,
+                originType: originType,
+                nome: item.nome,
+                cognome: item.cognome,
+                sesso: item.sesso,
+                nota: '',
+                notaColor: '#0d6efd'
+            });
+
+            saveDataImmediate(); renderTrips();
+        }
+
+        function closeAllAutocompletes(e) {
+            if(!e.target.closest('.position-relative')) {
+                document.querySelectorAll('.autocomplete-results').forEach(el => el.classList.add('d-none'));
+            }
+        }
+
+        function updateTripMeta(tripId) {
+            const trip = appData.trasferteAttive.find(t => t.id === tripId);
+            if(trip) {
+                trip.name = document.getElementById(`tripName_${tripId}`).value.trim();
+                trip.date = document.getElementById(`tripDate_${tripId}`).value;
+                saveDataImmediate();
+            }
+        }
+
+        function renderTrips() {
+            const container = document.getElementById('activeTripsContainer');
+            container.innerHTML = '';
+
+            if(appData.trasferteAttive.length === 0) {
+                container.innerHTML = `<div class="alert alert-info"><i class="fas fa-info-circle"></i> Nessuna trasferta attiva. Clicca su "Nuova Trasferta" per iniziare.</div>`;
+                return;
+            }
+
+            appData.trasferteAttive.forEach((t, i) => {
+                const card = document.createElement('div');
+                card.className = "card border-success mb-4 overflow-visible";
+                card.innerHTML = `
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0 fw-bold"><i class="fas fa-bus"></i> Trasferta Attiva #${i+1}</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-end mb-3">
+                            <div class="col-md-4">
+                                <label class="fw-bold">Nome Trasferta</label>
+                                <input type="text" class="form-control fw-bold text-primary" id="tripName_${t.id}" value="${t.name}" placeholder="Es. Napoli - Juventus..." onchange="updateTripMeta('${t.id}')">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="fw-bold">Data Trasferta</label>
+                                <input type="date" class="form-control" id="tripDate_${t.id}" value="${t.date}" onchange="updateTripMeta('${t.id}')">
+                            </div>
+                            <div class="col-md-5 text-end mt-2 mt-md-0">
+                                <span class="badge bg-dark fs-6 me-2">Tot: ${t.list.length}</span>
+                                <button class="btn btn-danger" onclick="askTripPDFOptions('${t.id}')"><i class="fas fa-file-pdf"></i> PDF</button>
+                                <button class="btn btn-warning" onclick="closeTrip('${t.id}')"><i class="fas fa-archive"></i> Archivia</button>
+                            </div>
+                        </div>
+
+                        <div class="position-relative mb-3 col-md-8 mx-auto">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="tripSearch_${t.id}" onkeyup="handleTripSearch('${t.id}')" placeholder="Cerca Nominativo da aggiungere al volo...">
+                            </div>
+                            <div id="tripSearchResults_${t.id}" class="autocomplete-results d-none"></div>
+                        </div>
+
+                        <div class="table-responsive" style="overflow: visible;">
+                            <table class="table table-hover table-bordered mb-0">
+                                <thead class="table-light"><tr>
+                                    <th style="width:50px">N°</th><th>Nominativo e Note</th><th>Sesso</th><th>Azioni</th>
+                                </tr></thead>
+                                <tbody>
+                                    ${t.list.length === 0 ? `<tr><td colspan="4" class="text-center text-muted">Nessun partecipante</td></tr>` : ''}
+                                    ${t.list.map((p, idx) => `
+                                        <tr>
+                                            <td class="fw-bold">${idx + 1}</td>
+                                            <td>
+                                                <span class="fw-bold">${p.cognome} ${p.nome}</span>
+                                                ${p.nota ? `<span class="badge ms-2" style="background-color: ${p.notaColor || '#6c757d'}">${p.nota}</span>` : ''}
+                                            </td>
+                                            <td>${p.sesso || ''}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-info" onclick="editTripNote('${t.id}', '${p.tripId}')" title="Modifica Nota/Colore"><i class="fas fa-sticky-note"></i></button>
+                                                <button class="btn btn-sm btn-secondary" onclick="moveTripRow('${t.id}', '${p.tripId}')" title="Sposta Posizione"><i class="fas fa-arrows-alt-v"></i></button>
+                                                <button class="btn btn-sm btn-danger" onclick="removeFromTrip('${t.id}', '${p.tripId}')" title="Rimuovi"><i class="fas fa-times"></i></button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function editTripNote(tripId, rowId) {
+            const trip = appData.trasferteAttive.find(t => t.id === tripId);
+            const p = trip.list.find(x => x.tripId === rowId);
+
+            Swal.fire({
+                title: 'Aggiungi Nota',
+                html: `
+                    <input id="swal-note-text" class="swal2-input" placeholder="Scrivi la nota..." value="${p.nota || ''}">
+                    <div class="mt-4 d-flex align-items-center justify-content-center gap-3">
+                        <label class="fw-bold">Colore Sfondo Nota: </label>
+                        <input type="color" id="swal-note-color" value="${p.notaColor || '#0d6efd'}" style="width:50px; height:40px; cursor:pointer;">
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Salva',
+                cancelButtonText: 'Annulla',
+                preConfirm: () => {
+                    return {
+                        text: document.getElementById('swal-note-text').value.trim(),
+                        color: document.getElementById('swal-note-color').value
+                    }
+                }
+            }).then(res => {
+                if(res.isConfirmed) {
+                    p.nota = res.value.text;
+                    p.notaColor = res.value.color;
+                    saveDataImmediate();
+                    renderTrips();
+                }
+            });
+        }
+
+        async function moveTripRow(tripId, rowId) {
+            const trip = appData.trasferteAttive.find(t => t.id === tripId);
+            const currentIndex = trip.list.findIndex(x => x.tripId === rowId);
+
+            const { value: newPosStr } = await Swal.fire({
+                title: 'Sposta Partecipante',
+                text: `Sposta alla posizione (da 1 a ${trip.list.length}):`,
+                input: 'number',
+                inputValue: currentIndex + 1,
+                inputAttributes: { min: 1, max: trip.list.length },
+                showCancelButton: true,
+                confirmButtonText: 'Sposta'
+            });
+
+            if(newPosStr) {
+                let newPos = parseInt(newPosStr) - 1;
+                if(newPos >= 0 && newPos < trip.list.length && newPos !== currentIndex) {
+                    const item = trip.list.splice(currentIndex, 1)[0];
+                    trip.list.splice(newPos, 0, item);
+                    saveDataImmediate();
+                    renderTrips();
+                }
+            }
+        }
+
+        function removeFromTrip(tripId, rowId) {
+            const trip = appData.trasferteAttive.find(t => t.id === tripId);
+            if(trip) {
+                trip.list = trip.list.filter(x => x.tripId !== rowId);
+                saveDataImmediate(); renderTrips();
+            }
+        }
+
+        function closeTrip(tripId) {
+            const tripIndex = appData.trasferteAttive.findIndex(t => t.id === tripId);
+            if (tripIndex === -1) return;
+            const trip = appData.trasferteAttive[tripIndex];
+
+            if (trip.list.length === 0) {
+                Swal.fire({
+                    title: 'Trasferta Vuota',
+                    text: 'Vuoi eliminare questa trasferta vuota invece di archiviarla?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sì, Elimina'
+                }).then(res => {
+                    if(res.isConfirmed) {
+                        appData.trasferteAttive.splice(tripIndex, 1);
+                        saveDataImmediate(); renderTrips();
+                    }
+                });
+                return;
+            }
+            if (!trip.name) {
+                Swal.fire('Attenzione', 'Inserisci un nome per la trasferta prima di archiviarla.', 'warning');
+                return;
+            }
+
+            const archObj = {
+                id: trip.id,
+                name: trip.name,
+                date: trip.date,
+                count: trip.list.length,
+                list: JSON.parse(JSON.stringify(trip.list))
+            };
+
+            const existingIdx = appData.archivioTrasferte.findIndex(x => x.id === trip.id);
+            if (existingIdx !== -1) appData.archivioTrasferte[existingIdx] = archObj;
+            else appData.archivioTrasferte.push(archObj);
+
+            appData.trasferteAttive.splice(tripIndex, 1);
+            
+            saveDataImmediate(); renderTrips(); renderArchive();
+            Swal.fire('Archiviata', 'Trasferta spostata nell\'archivio concluse.', 'success');
+            toggleSection('archiveTab');
+        }
+
+        function renderArchive() {
+            const tbody = document.getElementById('tbodyArchive');
+            tbody.innerHTML = '';
+            const sorted = [...appData.archivioTrasferte].sort((a,b) => b.id.localeCompare(a.id));
+
+            sorted.forEach(a => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold">${a.name}</td>
+                    <td>${formatDateIT(a.date)}</td>
+                    <td><span class="badge bg-secondary">${a.count}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="restoreTrip('${a.id}')"><i class="fas fa-folder-open"></i> Ripristina (Modifica)</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteArchive('${a.id}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function restoreTrip(id) {
+            const archIndex = appData.archivioTrasferte.findIndex(x => x.id === id);
+            if(archIndex !== -1) {
+                const arch = appData.archivioTrasferte[archIndex];
+                
+                appData.trasferteAttive.push({
+                    id: arch.id,
+                    name: arch.name,
+                    date: arch.date,
+                    list: JSON.parse(JSON.stringify(arch.list))
+                });
+
+                appData.archivioTrasferte.splice(archIndex, 1);
+                
+                saveDataImmediate(); renderTrips(); renderArchive();
+                toggleSection('tripTab');
+                Swal.fire({toast:true, position:'top-end', icon:'success', title:'Trasferta Riaperta', showConfirmButton:false, timer:1500});
+            }
+        }
+
+        function deleteArchive(id) {
+            Swal.fire({
+                title: 'Eliminare definitivamente?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Elimina'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    appData.archivioTrasferte = appData.archivioTrasferte.filter(x => x.id !== id);
+                    appData.deletedArchiveIds.push(id);
+                    saveDataImmediate(); renderArchive();
+                }
+            });
+        }
+
+        // ==========================================
+        // 7. PDF GENERATION
+        // ==========================================
+        const { jsPDF } = window.jspdf;
+
+        function getFullMemberData(refId, originType) {
+            const list = originType === 'soci' ? appData.soci : appData.accompagnatori;
+            return list.find(x => x.id === refId) || {};
+        }
+
+        function buildBasePDF(title) {
+            const doc = new jsPDF('p', 'pt', 'a4');
+            const logo = getActiveLogo();
+            doc.addImage(logo, 'JPEG', 40, 30, 50, 50);
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.text("CLUB NAPOLI PARTENOPEI MODENA", 100, 50);
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text(title, 100, 70);
+            return doc;
+        }
+
+        // --- Stampa Soci Avanzata ---
+        async function askSociPDFOptions() {
+            const { value: options } = await Swal.fire({
+                title: 'Opzioni Stampa Soci',
+                html: `
+                    <div class="text-start ms-4">
+                        <div class="form-check fs-5 mb-2">
+                            <input class="form-check-input" type="checkbox" id="optCF" checked>
+                            <label class="form-check-label" for="optCF">Includi <b>Codice Fiscale</b></label>
+                        </div>
+                        <div class="form-check fs-5 mb-2">
+                            <input class="form-check-input" type="checkbox" id="optTessera" checked>
+                            <label class="form-check-label" for="optTessera">Includi <b>N° Tessera</b></label>
+                        </div>
+                        <div class="form-check fs-5 mb-2">
+                            <input class="form-check-input" type="checkbox" id="optScadenza" checked>
+                            <label class="form-check-label" for="optScadenza">Includi <b>Scadenza Tessera</b></label>
+                        </div>
+                        <div class="form-check fs-5">
+                            <input class="form-check-input" type="checkbox" id="optCodSic" checked>
+                            <label class="form-check-label" for="optCodSic">Includi <b>Cod/Sic</b></label>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Avanti <i class="fas fa-arrow-right"></i>',
+                cancelButtonText: 'Annulla',
+                preConfirm: () => {
+                    return {
+                        cf: document.getElementById('optCF').checked,
+                        tessera: document.getElementById('optTessera').checked,
+                        scadenza: document.getElementById('optScadenza').checked,
+                        codSic: document.getElementById('optCodSic').checked
+                    }
+                }
+            });
+
+            if(options) {
+                const { value: fontSize } = await Swal.fire({
+                    title: 'Dimensione Font',
+                    input: 'number',
+                    inputValue: '8',
+                    showCancelButton: true,
+                    confirmButtonText: 'Genera PDF'
+                });
+                if(fontSize) {
+                    previewSociPDF(options.cf, options.tessera, options.scadenza, options.codSic, parseInt(fontSize));
+                }
+            }
+        }
+
+        function previewSociPDF(includeCF, includeTessera, includeScadenza, includeCodSic, fontSize) {
+            const doc = buildBasePDF(`Elenco Soci - Stagione ${appData.renewalSeason}`);
+            const search = document.getElementById('searchSoci').value.toLowerCase();
+            let data = [...appData.soci].sort((a,b) => (a.cognome+" "+a.nome).localeCompare(b.cognome+" "+b.nome));
+            if(search) data = data.filter(item => `${item.nome} ${item.cognome} ${item.cf} ${item.tessera} ${item.residenza}`.toLowerCase().includes(search));
+
+            const head = [['Nominativo']];
+            if(includeCF) head[0].push('Cod Fiscale');
+            if(includeTessera) head[0].push('Tessera');
+            if(includeScadenza) head[0].push('Scadenza');
+            head[0].push(`Rinnovo ${appData.renewalSeason}`);
+            if(includeCodSic) head[0].push('Cod/Sic');
+
+            const tableData = data.map(s => {
+                const row = [s.cognome + " " + s.nome];
+                if(includeCF) row.push(s.cf || '');
+                if(includeTessera) row.push(s.tessera || '');
+                if(includeScadenza) row.push(formatDateIT(s.scadenza) || '');
+                row.push(s.rinnovi && s.rinnovi[appData.renewalSeason] ? "SI" : "NO");
+                if(includeCodSic) row.push(s.codSic || '');
+                return row;
             });
 
             doc.autoTable({
-                head: [["Nominativo", "Scadenza", "Tessera"]],
-                body: tableRows,
-                startY: 40,
-                theme: 'grid',
-                headStyles: { fillColor: color } 
+                startY: 100,
+                head: head,
+                body: tableData,
+                styles: { fontSize: fontSize },
+                headStyles: { fillColor: [18, 47, 103] }
             });
 
-            const stringaPdf = doc.output('bloburl');
-            window.open(stringaPdf, '_blank');
+            tempPDFDoc = doc;
+            currentPdfFileName = `Soci_${appData.renewalSeason.replace('/','-')}.pdf`;
+            const pdfOutput = doc.output('bloburl');
+            tempPDFBlobUrl = pdfOutput;
+            
+            document.getElementById('pdfPreviewIframe').src = pdfOutput;
+            const modal = new bootstrap.Modal(document.getElementById('pdfPreviewModal'));
+            modal.show();
         }
 
-        // --- MODIFICA RICHIESTA: APERTURA ANTEPRIMA ---
-        window.printArchiveTrip = function(id) { 
-            const trip = window.appData.archivioTrasferte.find(a => String(a.id) === String(id)); 
-            if(!trip) return; 
-            const rLimit = parseInt(prompt("Righe per pagina?", "20")) || 0; 
-            const fSize = parseInt(prompt("Font Size?", "10")) || 10; 
-            const { jsPDF } = window.jspdf; 
-            const doc = new jsPDF({ orientation: "landscape" }); 
-            if(window.appData.customLogo) { try { doc.addImage(window.appData.customLogo, 'PNG', 14, 10, 25, 25); } catch(e){} } 
-            doc.setFontSize(16); doc.setTextColor(18, 47, 103); 
-            doc.text("CLUB NAPOLI PARTENOPEI MODENA", 45, 20); 
-            doc.setFontSize(14); doc.setTextColor(0); 
-            doc.text(`Trasferta: ${trip.name}`, 45, 28); 
-            doc.setFontSize(10); 
-            doc.text(`Data Archivio: ${trip.date} - Totale: ${trip.list.length}`, 45, 34); 
-            const tableRows = []; 
-            trip.list.forEach((item, index) => { 
-                let d = {}; 
-                if(item.originType === 'soci' && window.appData.soci) d = window.appData.soci.find(s => s.id === item.refId) || {}; 
-                else if(window.appData.accompagnatori) d = window.appData.accompagnatori.find(a => a.id === item.refId) || {}; 
-                let nameCell = `${item.cognome} ${item.nome}`; 
-                if(item.note) nameCell = `(NOTE: ${item.note})\n${nameCell}`; 
-                tableRows.push([ index + 1, nameCell, `${d.luogo||''} (${d.prov||''}) - ${formatDateIT(d.dataNascita)}`, `${d.residenza||''} (${d.provResidenza||''})`, d.cf||'', d.tessera||'-' ]); 
-            }); 
-            doc.autoTable({ head: [["#", "Nominativo", "Nascita", "Residenza", "CF", "Tessera"]], body: tableRows, startY: 45, theme: 'grid', headStyles: { fillColor: [18, 47, 103] }, styles: { fontSize: fSize }, didParseCell: function(data) { if (data.section === 'body' && trip.list[data.row.index].highlightColor === 'green') data.cell.styles.fillColor = [209, 231, 221]; } }); 
+        function printExpiredPDF() { generateStatusPDF('expired', 'Tessere Scadute', [220, 53, 69]); }
+        function printExpiringPDF() { generateStatusPDF('expiring', 'Tessere in Scadenza', [253, 126, 20]); }
+
+        function generateStatusPDF(statusType, title, color) {
+            const doc = buildBasePDF(title);
+            let combined = [...appData.soci, ...appData.accompagnatori];
+            let filtered = combined.filter(x => checkStatus(x) === statusType);
+            filtered.sort((a,b) => (a.cognome+" "+a.nome).localeCompare(b.cognome+" "+b.nome));
+
+            const tableData = filtered.map(x => [
+                x.cognome + " " + x.nome, x.tessera || '', formatDateIT(x.scadenza),
+                (x.rinnovi !== undefined) ? 'Socio' : 'Accompagnatore'
+            ]);
+
+            doc.autoTable({
+                startY: 100, head: [['Nominativo', 'Tessera', 'Scadenza', 'Qualifica']],
+                body: tableData, styles: { fontSize: 9 }, headStyles: { fillColor: color }
+            });
+            doc.save(`${title.replace(/ /g, '_')}.pdf`);
+        }
+
+        async function askTripPDFOptions(tripId) {
+            const trip = appData.trasferteAttive.find(t => t.id === tripId);
+            if (!trip || trip.list.length === 0) {
+                Swal.fire('Attenzione', 'Nessun partecipante nella trasferta.', 'warning');
+                return;
+            }
             
-            // MODIFICATO QUI: Genera Blob URL e apri in nuova scheda
-            const stringaPdf = doc.output('bloburl');
-            window.open(stringaPdf, '_blank');
-        };
-
-        window.downloadSelfContained = function() { const dataJson = JSON.stringify(window.appData); let htmlContent = document.documentElement.outerHTML; const regex = /window\.appData = \{.*?\};/; const newInit = `window.appData = ${dataJson};`; htmlContent = htmlContent.replace(regex, newInit); const blob = new Blob([htmlContent], {type: 'text/html'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = "ClubNapoli_App.html"; document.body.appendChild(a); a.click(); document.body.removeChild(a); };
-        window.importLogo = function(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { window.appData.customLogo = e.target.result; document.getElementById('app-logo').src = window.appData.customLogo; updateAppIcons(window.appData.customLogo); if(window.saveDataOnline) window.saveDataOnline(); alert("Logo OK!"); }; reader.readAsDataURL(file); input.value = ''; };
-        window.exportData = function() { const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.appData)); a.download = "Backup.json"; document.body.appendChild(a); a.click(); a.remove(); };
-        
-        // --- FIXED IMPORT ---
-        window.importData = function(input) {
-            const f = input.files[0]; if(!f) return;
-            const r = new FileReader();
-            r.onload = e => {
-                if(confirm("Confermi l'importazione? I dati verranno caricati online.")) {
-                    try {
-                        const parsed = JSON.parse(e.target.result);
-                        if(parsed) {
-                            window.appData = parsed;
-                            // Force initialization if arrays are missing
-                            if(!window.appData.soci) window.appData.soci = [];
-                            if(!window.appData.accompagnatori) window.appData.accompagnatori = [];
-                            if(!window.appData.archivioTrasferte) window.appData.archivioTrasferte = [];
-                            if(!window.appData.printExpired) window.appData.printExpired = [];
-                            if(!window.appData.printExpiring) window.appData.printExpiring = [];
-                            
-                            if(window.saveDataOnline) window.saveDataOnline();
-                            window.renderAll();
-                            alert("Importazione completata!");
-                        }
-                    } catch(err) { alert("Errore lettura file."); }
+            const { value: options } = await Swal.fire({
+                title: 'Opzioni Stampa Trasferta',
+                html: `
+                    <div class="text-start ms-4">
+                        <div class="form-check fs-5 mb-3">
+                            <input class="form-check-input" type="checkbox" id="optCodSic">
+                            <label class="form-check-label" for="optCodSic">Includi Colonna <b>Cod/Sic</b></label>
+                        </div>
+                        <div class="form-check fs-5">
+                            <input class="form-check-input" type="checkbox" id="optNote">
+                            <label class="form-check-label" for="optNote">Includi Colonna <b>Note</b></label>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Avanti <i class="fas fa-arrow-right"></i>',
+                cancelButtonText: 'Annulla',
+                preConfirm: () => {
+                    return {
+                        codSic: document.getElementById('optCodSic').checked,
+                        note: document.getElementById('optNote').checked
+                    }
                 }
-            }; r.readAsText(f); input.value = '';
-        };
+            });
 
-        window.exportPDFSoci = function() { const doc = new window.jspdf.jsPDF({ orientation: "landscape" }); doc.text("CLUB NAPOLI PARTENOPEI MODENA - Lista Soci", 14, 15); if(!window.appData.soci) return; const rows = [...window.appData.soci].sort((a,b)=>a.cognome.localeCompare(b.cognome)).map((s,i) => [ i+1, `${s.cognome} ${s.nome}`, `${s.luogo} (${s.prov}) - ${formatDateIT(s.dataNascita)}`, `${s.residenza} (${s.provResidenza})`, s.cf, s.tessera ]); doc.autoTable({ head: [["#", "Nominativo", "Nascita", "Residenza", "CF", "Tessera"]], body: rows, startY: 20, styles: { fontSize: 9 } }); doc.save("Lista_Soci.pdf"); };
-        function syncToArchiveIfLinked() { if (window.appData.currentTripInfo && window.appData.currentTripInfo.id && window.appData.archivioTrasferte) { const index = window.appData.archivioTrasferte.findIndex(a => String(a.id) === String(window.appData.currentTripInfo.id)); if (index !== -1) { window.appData.archivioTrasferte[index].list = JSON.parse(JSON.stringify(window.appData.trasfertaAttiva)); window.appData.archivioTrasferte[index].count = window.appData.trasfertaAttiva.length; window.appData.archivioTrasferte[index].name = window.appData.currentTripInfo.name; window.appData.archivioTrasferte[index].date = new Date().toLocaleDateString(); } } }
+            if(options) {
+                const { value: fontSize } = await Swal.fire({
+                    title: 'Dimensione Font',
+                    input: 'number',
+                    inputValue: '10',
+                    showCancelButton: true,
+                    confirmButtonText: 'Genera PDF'
+                });
+                if(fontSize) {
+                    previewTripPDF(trip, options.codSic, options.note, parseInt(fontSize));
+                }
+            }
+        }
 
-        // INITIAL LOAD (Safety)
-        window.appData = { 
-            soci: [], 
-            accompagnatori: [], 
-            trasfertaAttiva: [], 
-            archivioTrasferte: [], 
-            currentTripInfo: null, 
-            customLogo: null,
-            printExpired: [],
-            printExpiring: []
-        };
+        function previewTripPDF(trip, includeCodSic, includeNote, fontSize) {
+            const doc = buildBasePDF(`Trasferta: ${trip.name || 'Senza Nome'} - ${formatDateIT(trip.date)}`);
+            doc.text(`Totale Partecipanti: ${trip.list.length}`, 40, 90);
+
+            const head = [['N°', 'Nominativo', 'Nascita', 'Residenza', 'CF', 'Tessera']];
+            if(includeCodSic) head[0].push('Cod/Sic'); 
+            if(includeNote) head[0].push('Note'); 
+
+            const body = trip.list.map((t, idx) => {
+                const full = getFullMemberData(t.refId, t.originType);
+                const row = [
+                    (idx + 1).toString(),
+                    t.cognome + " " + t.nome,
+                    formatDateIT(full.dataNascita),
+                    full.residenza || '',
+                    full.cf || '',
+                    full.tessera || ''
+                ];
+                if(includeCodSic) row.push(full.codSic || '');
+                if(includeNote) row.push(t.nota || '');
+                return row;
+            });
+
+            doc.autoTable({
+                startY: 105,
+                head: head,
+                body: body,
+                styles: { fontSize: fontSize },
+                headStyles: { fillColor: [18, 47, 103] }
+            });
+
+            tempPDFDoc = doc;
+            currentPdfFileName = `Trasferta_${(trip.name || 'Senza_Nome').replace(/[^a-z0-9]/gi, '_')}.pdf`;
+            const pdfOutput = doc.output('bloburl');
+            tempPDFBlobUrl = pdfOutput;
+            
+            document.getElementById('pdfPreviewIframe').src = pdfOutput;
+            const modal = new bootstrap.Modal(document.getElementById('pdfPreviewModal'));
+            modal.show();
+        }
+
+        function printFromPreview() {
+            if(tempPDFBlobUrl) {
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = tempPDFBlobUrl;
+                document.body.appendChild(iframe);
+                iframe.onload = function() { setTimeout(() => { iframe.contentWindow.print(); }, 100); };
+            }
+        }
+
+        function saveFromPreview() {
+            if(tempPDFDoc) {
+                tempPDFDoc.save(currentPdfFileName || 'Documento.pdf');
+            }
+        }
+
+        // ==========================================
+        // 8. IMPORT / EXPORT / SHARE
+        // ==========================================
+        function exportData() {
+            const exportObj = { appData: appData, logo: localStorage.getItem('clubNapoliLogo') || null };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `Backup_Club_Napoli_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.appData) {
+                        appData = parsed.appData;
+                        if(parsed.logo) localStorage.setItem('clubNapoliLogo', parsed.logo);
+                    } else appData = parsed; 
+                    saveDataImmediate(); updateLogoUI(); initRenewalSeasons(); renderAll();
+                    Swal.fire('Importato', 'Dati ripristinati con successo.', 'success');
+                } catch(err) { Swal.fire('Errore', 'File JSON non valido.', 'error'); }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function downloadSelfContained() {
+            saveDataImmediate(); 
+            const htmlContent = document.documentElement.outerHTML;
+            const exportData = { ...appData, _lastModified: Date.now() };
+            const injectedScript = `<script id="injected-data">window.__INJECTED_DATA__ = ${JSON.stringify(exportData)};<\/script>`;
+            
+            let finalHtml = htmlContent.replace(/<script id="injected-data">.*?<\/script>/is, injectedScript);
+            const currentLogo = localStorage.getItem('clubNapoliLogo');
+            if(currentLogo) finalHtml = finalHtml.replace(/const DEFAULT_LOGO = ".*?";/, `const DEFAULT_LOGO = "${currentLogo}";`);
+
+            const blob = new Blob(["<!DOCTYPE html>\n" + finalHtml], { type: "text/html" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ClubNapoli_App_Condivisa.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
     </script>
 </body>
 </html>
