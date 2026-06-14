@@ -434,6 +434,16 @@
             });
         }
 
+        function safeFirebaseKey(value) {
+            return String(value || '')
+                .replaceAll(".", "_")
+                .replaceAll("#", "_")
+                .replaceAll("$", "_")
+                .replaceAll("/", "_")
+                .replaceAll("[", "_")
+                .replaceAll("]", "_");
+        }
+
         function normalizeData() {
             if (!appData.soci) appData.soci = [];
             if (!appData.accompagnatori) appData.accompagnatori = [];
@@ -443,8 +453,16 @@
             if (!appData.trasferteAttive) appData.trasferteAttive = [];
 
             appData.soci.forEach(s => {
-                if(!s.rinnovi) s.rinnovi = {};
-                if(s.evidenziato === undefined) s.evidenziato = false;
+                if (!s.rinnovi) s.rinnovi = {};
+
+                const rinnoviPuliti = {};
+                Object.keys(s.rinnovi).forEach(stagione => {
+                    const stagioneSicura = safeFirebaseKey(stagione);
+                    rinnoviPuliti[stagioneSicura] = s.rinnovi[stagione];
+                });
+                s.rinnovi = rinnoviPuliti;
+
+                if (s.evidenziato === undefined) s.evidenziato = false;
             });
             
             appData.soci = appData.soci.filter(s => !appData.deletedMemberIds.includes(s.id));
@@ -452,6 +470,7 @@
             appData.archivioTrasferte = appData.archivioTrasferte.filter(a => !appData.deletedArchiveIds.includes(a.id));
             
             appData.trasferteAttive.forEach(t => {
+                if (!t.list) t.list = [];
                 t.list = t.list.filter(p => !appData.deletedMemberIds.includes(p.refId));
                 t.list.forEach(p => {
                     if(p.nota === undefined) p.nota = '';
@@ -633,12 +652,13 @@
             let countRinnovati = 0;
             if (isSoci) {
                 const season = appData.renewalSeason;
+                const seasonKey = safeFirebaseKey(season);
                 const filter = appData.renewalFilter;
                 
-                data.forEach(s => { if(s.rinnovi && s.rinnovi[season]) countRinnovati++; });
+                data.forEach(s => { if(s.rinnovi && s.rinnovi[seasonKey]) countRinnovati++; });
                 
-                if (filter === "renewed") data = data.filter(s => s.rinnovi && s.rinnovi[season]);
-                else if (filter === "missing") data = data.filter(s => !s.rinnovi || !s.rinnovi[season]);
+                if (filter === "renewed") data = data.filter(s => s.rinnovi && s.rinnovi[seasonKey]);
+                else if (filter === "missing") data = data.filter(s => !s.rinnovi || !s.rinnovi[seasonKey]);
                 
                 document.getElementById('renewalCounterText').innerText = `Rinnovati ${season}: ${countRinnovati} / ${appData.soci.length}`;
             }
@@ -671,7 +691,8 @@
                 html += `<td><span class="${dateTdClass}">${formatDateIT(item.scadenza)}</span></td>`;
                 
                 if (isSoci) {
-                    const hasRenewed = item.rinnovi && item.rinnovi[appData.renewalSeason];
+                    const seasonKey = safeFirebaseKey(appData.renewalSeason);
+                    const hasRenewed = item.rinnovi && item.rinnovi[seasonKey];
                     const rClass = hasRenewed ? 'bg-success' : 'bg-danger';
                     const rText = hasRenewed ? 'SI' : 'NO';
                     html += `<td><span class="badge ${rClass} badge-rinnovo shadow-sm" onclick="toggleRenewal('${item.id}')">${rText}</span></td>`;
@@ -812,9 +833,12 @@
         function toggleRenewal(id) {
             const item = appData.soci.find(x => x.id === id);
             if (!item) return;
+            if (!item.rinnovi) item.rinnovi = {};
+
             const season = appData.renewalSeason;
+            const seasonKey = safeFirebaseKey(season);
             
-            if (item.rinnovi[season]) {
+            if (item.rinnovi[seasonKey]) {
                 Swal.fire({
                     title: 'Annullare Rinnovo?',
                     text: `Vuoi rimuovere il rinnovo di ${item.cognome} ${item.nome} per la stagione ${season}?`,
@@ -825,13 +849,16 @@
                     confirmButtonColor: '#d33'
                 }).then((res) => {
                     if(res.isConfirmed) {
+                        delete item.rinnovi[seasonKey];
                         delete item.rinnovi[season];
                         saveDataImmediate();
+                        renderTable('soci');
                     }
                 });
             } else {
-                item.rinnovi[season] = true;
+                item.rinnovi[seasonKey] = true;
                 saveDataImmediate();
+                renderTable('soci');
                 Swal.fire({toast: true, position: 'top-end', icon: 'success', title: `${item.nome} ha rinnovato!`, showConfirmButton: false, timer: 1500});
             }
         }
@@ -1282,6 +1309,7 @@
         function previewSociPDF(includeCF, includeTessera, includeScadenza, includeCodSic, fontSize) {
             const doc = buildBasePDF(`Elenco Soci - Stagione ${appData.renewalSeason}`);
             const search = document.getElementById('searchSoci').value.toLowerCase();
+            const seasonKey = safeFirebaseKey(appData.renewalSeason);
             let data = [...appData.soci].sort((a,b) => (a.cognome+" "+a.nome).localeCompare(b.cognome+" "+b.nome));
             if(search) data = data.filter(item => `${item.nome} ${item.cognome} ${item.cf} ${item.tessera} ${item.residenza}`.toLowerCase().includes(search));
 
@@ -1297,7 +1325,7 @@
                 if(includeCF) row.push(s.cf || '');
                 if(includeTessera) row.push(s.tessera || '');
                 if(includeScadenza) row.push(formatDateIT(s.scadenza) || '');
-                row.push(s.rinnovi && s.rinnovi[appData.renewalSeason] ? "SI" : "NO");
+                row.push(s.rinnovi && s.rinnovi[seasonKey] ? "SI" : "NO");
                 if(includeCodSic) row.push(s.codSic || '');
                 return row;
             });
