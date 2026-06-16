@@ -161,8 +161,8 @@
                         </div>
                         <div class="mb-2 d-flex flex-wrap gap-2">
                             <button class="btn btn-sm btn-danger" onclick="askSociPDFOptions()"><i class="fas fa-file-pdf"></i> Stampa Soci</button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="printExpiredPDF()"><i class="fas fa-exclamation-circle"></i> Scaduti</button>
-                            <button class="btn btn-sm btn-outline-warning" onclick="printExpiringPDF()"><i class="fas fa-clock"></i> In Scadenza</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="printExpiredPDF()"><i class="fas fa-exclamation-circle"></i> Scaduti <span class="badge bg-danger ms-1" id="countExpired">0</span></button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="printExpiringPDF()"><i class="fas fa-clock"></i> In Scadenza <span class="badge bg-warning text-dark ms-1" id="countExpiring">0</span></button>
                             <span class="ms-auto align-self-center fw-bold text-success" id="renewalCounterText"></span>
                         </div>
                         <div class="table-responsive">
@@ -482,6 +482,7 @@
         function saveDataImmediate() {
             appData._lastModified = Date.now();
             normalizeData();
+            updateExpiryCounters();
             
             // Salva offline
             localStorage.setItem('clubNapoliData', JSON.stringify(appData));
@@ -589,10 +590,21 @@
         }
 
         function renderAll() {
+            updateExpiryCounters();
             renderTable('soci');
             renderTable('acc');
             renderTrips();
             renderArchive();
+        }
+
+        function updateExpiryCounters() {
+            const combined = [...appData.soci, ...appData.accompagnatori];
+            const expiredCount = combined.filter(x => checkStatus(x) === 'expired').length;
+            const expiringCount = combined.filter(x => checkStatus(x) === 'expiring').length;
+            const expiredEl = document.getElementById('countExpired');
+            const expiringEl = document.getElementById('countExpiring');
+            if (expiredEl) expiredEl.innerText = expiredCount;
+            if (expiringEl) expiringEl.innerText = expiringCount;
         }
 
         function toggleSection(tabId) {
@@ -643,6 +655,7 @@
         }
 
         function renderTable(type) {
+            updateExpiryCounters();
             const isSoci = type === 'soci';
             let data = isSoci ? appData.soci : appData.accompagnatori;
             const search = document.getElementById(isSoci ? 'searchSoci' : 'searchAcc').value.toLowerCase();
@@ -1344,25 +1357,91 @@
             modal.show();
         }
 
-        function printExpiredPDF() { generateStatusPDF('expired', 'Tessere Scadute', [220, 53, 69]); }
-        function printExpiringPDF() { generateStatusPDF('expiring', 'Tessere in Scadenza', [253, 126, 20]); }
+        function printExpiredPDF() { askStatusPDFOptions('expired', 'Tessere Scadute', [220, 53, 69]); }
+        function printExpiringPDF() { askStatusPDFOptions('expiring', 'Tessere in Scadenza', [253, 126, 20]); }
 
-        function generateStatusPDF(statusType, title, color) {
+        async function askStatusPDFOptions(statusType, title, color) {
+            const total = [...appData.soci, ...appData.accompagnatori].filter(x => checkStatus(x) === statusType).length;
+            const { value: options } = await Swal.fire({
+                title: `${title} (${total})`,
+                html: `
+                    <div class="text-start ms-4">
+                        <p class="text-muted mb-3">Scegli quali colonne inserire nella stampa.</p>
+                        <div class="form-check fs-5 mb-2">
+                            <input class="form-check-input" type="checkbox" id="optStatusTessera" checked>
+                            <label class="form-check-label" for="optStatusTessera">Includi <b>Tessera</b></label>
+                        </div>
+                        <div class="form-check fs-5 mb-2">
+                            <input class="form-check-input" type="checkbox" id="optStatusScadenza" checked>
+                            <label class="form-check-label" for="optStatusScadenza">Includi <b>Scadenza</b></label>
+                        </div>
+                        <div class="form-check fs-5">
+                            <input class="form-check-input" type="checkbox" id="optStatusQualifica" checked>
+                            <label class="form-check-label" for="optStatusQualifica">Includi <b>Qualifica</b></label>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Avanti <i class="fas fa-arrow-right"></i>',
+                cancelButtonText: 'Annulla',
+                preConfirm: () => {
+                    return {
+                        tessera: document.getElementById('optStatusTessera').checked,
+                        scadenza: document.getElementById('optStatusScadenza').checked,
+                        qualifica: document.getElementById('optStatusQualifica').checked
+                    };
+                }
+            });
+
+            if (options) {
+                const { value: fontSize } = await Swal.fire({
+                    title: 'Dimensione Font',
+                    input: 'number',
+                    inputValue: '9',
+                    inputAttributes: { min: 6, max: 18, step: 1 },
+                    showCancelButton: true,
+                    confirmButtonText: 'Apri Anteprima',
+                    cancelButtonText: 'Annulla'
+                });
+                if (fontSize) {
+                    previewStatusPDF(statusType, title, color, options, parseInt(fontSize));
+                }
+            }
+        }
+
+        function previewStatusPDF(statusType, title, color, options, fontSize) {
             const doc = buildBasePDF(title);
             let combined = [...appData.soci, ...appData.accompagnatori];
             let filtered = combined.filter(x => checkStatus(x) === statusType);
             filtered.sort((a,b) => (a.cognome+" "+a.nome).localeCompare(b.cognome+" "+b.nome));
 
-            const tableData = filtered.map(x => [
-                x.cognome + " " + x.nome, x.tessera || '', formatDateIT(x.scadenza),
-                (x.rinnovi !== undefined) ? 'Socio' : 'Accompagnatore'
-            ]);
+            doc.setFontSize(10);
+            doc.text(`Totale: ${filtered.length}`, 40, 90);
+
+            const head = [['Nominativo']];
+            if (options.tessera) head[0].push('Tessera');
+            if (options.scadenza) head[0].push('Scadenza');
+            if (options.qualifica) head[0].push('Qualifica');
+
+            const tableData = filtered.map(x => {
+                const row = [x.cognome + " " + x.nome];
+                if (options.tessera) row.push(x.tessera || '');
+                if (options.scadenza) row.push(formatDateIT(x.scadenza));
+                if (options.qualifica) row.push((x.rinnovi !== undefined) ? 'Socio' : 'Accompagnatore');
+                return row;
+            });
 
             doc.autoTable({
-                startY: 100, head: [['Nominativo', 'Tessera', 'Scadenza', 'Qualifica']],
-                body: tableData, styles: { fontSize: 9 }, headStyles: { fillColor: color }
+                startY: 105, head: head, body: tableData, styles: { fontSize: fontSize }, headStyles: { fillColor: color }
             });
-            doc.save(`${title.replace(/ /g, '_')}.pdf`);
+
+            tempPDFDoc = doc;
+            currentPdfFileName = `${title.replace(/ /g, '_')}.pdf`;
+            const pdfOutput = doc.output('bloburl');
+            tempPDFBlobUrl = pdfOutput;
+            document.getElementById('pdfPreviewIframe').src = pdfOutput;
+            const modal = new bootstrap.Modal(document.getElementById('pdfPreviewModal'));
+            modal.show();
         }
 
         async function askTripPDFOptions(tripId) {
