@@ -842,7 +842,9 @@
                         trip.list = trip.list.filter(x => !(x.refId === id && x.originType === type));
                     });
                     
-                    saveDataImmediate(); 
+                    saveDataImmediate();
+                    renderAll();
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Eliminato!', showConfirmButton: false, timer: 1500 });
                 }
             });
         }
