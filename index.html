@@ -269,8 +269,9 @@
                                         <div class="col-md-4"><label class="fw-bold">Provincia</label><input type="text" id="acc_prov" class="form-control" maxlength="2"></div>
                                         <div class="col-md-8"><label class="fw-bold">Residenza</label><input type="text" id="acc_residenza" class="form-control"></div>
                                         <div class="col-md-4"><label class="fw-bold">Prov. Residenza</label><input type="text" id="acc_provResidenza" class="form-control" maxlength="2"></div>
-                                        <div class="col-md-6"><label class="fw-bold text-primary">N° Tessera</label><input type="text" id="acc_tessera" class="form-control border-primary"></div>
-                                        <div class="col-md-6"><label class="fw-bold text-danger">Scadenza</label><input type="date" id="acc_scadenza" class="form-control border-danger"></div>
+                                        <div class="col-md-4"><label class="fw-bold text-primary">N° Tessera</label><input type="text" id="acc_tessera" class="form-control border-primary"></div>
+                                        <div class="col-md-4"><label class="fw-bold text-danger">Scadenza</label><input type="date" id="acc_scadenza" class="form-control border-danger"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Cod/Sic</label><input type="text" id="acc_codSic" class="form-control"></div>
                                     </div>
                                     <div class="mt-4 d-flex gap-2">
                                         <button type="submit" class="btn btn-success btn-lg px-5" id="btnAccSubmit"><i class="fas fa-save"></i> Salva Accompagnatore</button>
@@ -746,7 +747,8 @@
                 residenza: document.getElementById(`${type}_residenza`).value.trim(),
                 provResidenza: document.getElementById(`${type}_provResidenza`).value.toUpperCase(),
                 tessera: document.getElementById(`${type}_tessera`).value.trim(),
-                scadenza: document.getElementById(`${type}_scadenza`).value
+                scadenza: document.getElementById(`${type}_scadenza`).value,
+                codSic: document.getElementById(`${type}_codSic`) ? document.getElementById(`${type}_codSic`).value.trim() : ''
             };
 
             let list = type === 'soci' ? appData.soci : appData.accompagnatori;
@@ -781,6 +783,7 @@
 
             saveDataImmediate(); 
             cancelEdit(type); 
+            renderAll();
             Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Salvato!', showConfirmButton: false, timer: 1500 });
         }
 
@@ -802,7 +805,7 @@
             document.getElementById(`${type}_tessera`).value = item.tessera || '';
             document.getElementById(`${type}_scadenza`).value = item.scadenza || '';
             
-            if (type === 'soci') document.getElementById(`${type}_codSic`).value = item.codSic || '';
+            if (document.getElementById(`${type}_codSic`)) document.getElementById(`${type}_codSic`).value = item.codSic || '';
 
             document.getElementById(`form${type.charAt(0).toUpperCase() + type.slice(1)}Title`).innerHTML = '<i class="fas fa-edit"></i> Modifica Modulo';
             document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}Submit`).innerHTML = '<i class="fas fa-save"></i> Salva Modifica';
