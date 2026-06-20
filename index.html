@@ -842,8 +842,21 @@
                         trip.list = trip.list.filter(x => !(x.refId === id && x.originType === type));
                     });
                     
+                    // Aggiorna subito la schermata senza attendere Firebase o ricaricare la pagina
+                    normalizeData();
+                    updateExpiryCounters();
+                    localStorage.setItem('clubNapoliData', JSON.stringify(appData));
+                    renderTable(type);
+                    renderTrips();
+                    renderArchive();
+
+                    // Poi salva anche su Firebase mantenendo la sincronizzazione esistente
                     saveDataImmediate();
-                    renderAll();
+                    setTimeout(() => {
+                        renderTable(type);
+                        renderTrips();
+                        renderArchive();
+                    }, 0);
                     Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Eliminato!', showConfirmButton: false, timer: 1500 });
                 }
             });
