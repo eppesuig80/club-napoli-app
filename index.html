@@ -714,7 +714,7 @@
                 }
 
                 html += `
-                    <td>
+                    <td class="${isSoci ? 'text-nowrap' : ''}">
                         ${!isSoci ? `<button class="btn btn-sm btn-success" onclick="moveAccompagnatoreToSoci('${item.id}')" title="Sposta in Elenco Soci Iscritti"><i class="fas fa-user-check"></i></button>` : ''}
                         <button class="btn btn-sm btn-primary" onclick="loadMemberForEdit('${item.id}', '${type}')"><i class="fas fa-edit"></i></button>
                         <button class="btn btn-sm btn-danger" onclick="deleteMember('${item.id}', '${type}')"><i class="fas fa-trash"></i></button>
