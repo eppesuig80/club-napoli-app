@@ -715,6 +715,7 @@
 
                 html += `
                     <td>
+                        ${!isSoci ? `<button class="btn btn-sm btn-success" onclick="moveAccompagnatoreToSoci('${item.id}')" title="Sposta in Elenco Soci Iscritti"><i class="fas fa-user-check"></i></button>` : ''}
                         <button class="btn btn-sm btn-primary" onclick="loadMemberForEdit('${item.id}', '${type}')"><i class="fas fa-edit"></i></button>
                         <button class="btn btn-sm btn-danger" onclick="deleteMember('${item.id}', '${type}')"><i class="fas fa-trash"></i></button>
                     </td>
@@ -756,7 +757,9 @@
             if (type === 'soci') {
                 item.codSic = document.getElementById(`${type}_codSic`).value.trim();
                 if (isNew) {
-                    item.rinnovi = {}; item.evidenziato = false;
+                    const currentSeasonKey = safeFirebaseKey(getCurrentFootballSeason());
+                    item.rinnovi = { [currentSeasonKey]: true };
+                    item.evidenziato = false;
                 } else {
                     const old = list.find(x => x.id === item.id);
                     item.rinnovi = old ? old.rinnovi : {};
@@ -822,6 +825,60 @@
             document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}Submit`).innerHTML = '<i class="fas fa-save"></i> Salva';
             
             toggleForm(type, false);
+        }
+
+        function moveAccompagnatoreToSoci(id) {
+            const item = appData.accompagnatori.find(x => x.id === id);
+            if (!item) return;
+
+            Swal.fire({
+                title: 'Spostare tra i Soci?',
+                text: `${item.cognome} ${item.nome} verrà rimosso dagli Accompagnatori e inserito nell'Elenco Soci Iscritti.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sì, sposta',
+                cancelButtonText: 'Annulla',
+                confirmButtonColor: '#198754'
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+
+                const currentSeasonKey = safeFirebaseKey(getCurrentFootballSeason());
+                const nuovoSocio = {
+                    ...item,
+                    rinnovi: { ...(item.rinnovi || {}), [currentSeasonKey]: true },
+                    evidenziato: item.evidenziato === true
+                };
+
+                appData.accompagnatori = appData.accompagnatori.filter(x => x.id !== id);
+                appData.soci.push(nuovoSocio);
+
+                appData.trasferteAttive.forEach(trip => {
+                    trip.list.forEach(p => {
+                        if (p.refId === id && p.originType === 'acc') {
+                            p.originType = 'soci';
+                        }
+                    });
+                });
+
+                appData.archivioTrasferte.forEach(trip => {
+                    (trip.list || []).forEach(p => {
+                        if (p.refId === id && p.originType === 'acc') {
+                            p.originType = 'soci';
+                        }
+                    });
+                });
+
+                saveDataImmediate();
+                renderAll();
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Spostato tra i Soci!',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            });
         }
 
         function deleteMember(id, type) {
