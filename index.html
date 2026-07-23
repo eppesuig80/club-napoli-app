@@ -418,7 +418,7 @@
                     if (dataCloud._lastModified > (appData._lastModified || 0)) {
                         appData = { ...appData, ...dataCloud };
                         normalizeData();
-                        localStorage.setItem('clubNapoliData', JSON.stringify(appData));
+                        saveLocalDataSafely();
                         renderAll();
                         updateStatus("Sincronizzato Cloud");
                     } else if (dataCloud._lastModified === appData._lastModified) {
@@ -433,6 +433,19 @@
                     }
                 }
             });
+        }
+
+        function saveLocalDataSafely() {
+            try {
+                localStorage.setItem('clubNapoliData', JSON.stringify(appData));
+                return true;
+            } catch (err) {
+                if (err && (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || String(err.message || '').toLowerCase().includes('quota'))) {
+                    console.warn('Spazio locale esaurito: i dati restano disponibili e verranno salvati sul Cloud.', err);
+                    return false;
+                }
+                throw err;
+            }
         }
 
         function safeFirebaseKey(value) {
@@ -486,7 +499,7 @@
             updateExpiryCounters();
             
             // Salva offline
-            localStorage.setItem('clubNapoliData', JSON.stringify(appData));
+            saveLocalDataSafely();
             updateStatus("Salvataggio in corso...");
 
             // Salva online
@@ -902,7 +915,7 @@
                     // Aggiorna subito la schermata senza attendere Firebase o ricaricare la pagina
                     normalizeData();
                     updateExpiryCounters();
-                    localStorage.setItem('clubNapoliData', JSON.stringify(appData));
+                    saveLocalDataSafely();
                     renderTable(type);
                     renderTrips();
                     renderArchive();
@@ -1010,7 +1023,8 @@
             });
 
             saveDataImmediate();
-            Swal.fire({toast:true, position:'top-end', icon:'success', title:'Aggiunto!', showConfirmButton:false, timer:1000});
+            renderTrips();
+            Swal.fire({toast:true, position:'top-end', icon:'success', title:`${item.cognome} ${item.nome} aggiunto alla trasferta`, showConfirmButton:false, timer:1500});
         }
 
         function handleTripSearch(tripId) {
@@ -1070,6 +1084,15 @@
             });
 
             saveDataImmediate();
+            renderTrips();
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `${item.cognome} ${item.nome} aggiunto alla trasferta`,
+                showConfirmButton: false,
+                timer: 1500
+            });
         }
 
         function closeAllAutocompletes(e) {
@@ -1216,10 +1239,34 @@
 
         function removeFromTrip(tripId, rowId) {
             const trip = appData.trasferteAttive.find(t => t.id === tripId);
-            if(trip) {
+            if (!trip) return;
+
+            const participant = trip.list.find(x => x.tripId === rowId);
+            if (!participant) return;
+
+            Swal.fire({
+                title: 'Rimuovere il nominativo?',
+                text: `Vuoi eliminare ${participant.cognome} ${participant.nome} da questa trasferta?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Sì, elimina',
+                cancelButtonText: 'Annulla'
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+
                 trip.list = trip.list.filter(x => x.tripId !== rowId);
                 saveDataImmediate();
-            }
+                renderTrips();
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: `${participant.cognome} ${participant.nome} rimosso dalla trasferta`,
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            });
         }
 
         function closeTrip(tripId) {
@@ -1634,16 +1681,76 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const parsed = JSON.parse(e.target.result);
-                    if (parsed.appData) {
-                        appData = parsed.appData;
-                        if(parsed.logo) localStorage.setItem('clubNapoliLogo', parsed.logo);
-                    } else appData = parsed; 
-                    saveDataImmediate(); updateLogoUI(); initRenewalSeasons(); renderAll();
-                    Swal.fire('Importato', 'Dati ripristinati con successo.', 'success');
-                } catch(err) { Swal.fire('Errore', 'File JSON non valido.', 'error'); }
+                    let raw = String(e.target.result || '')
+                        .replace(/^\uFEFF/, '')
+                        .trim();
+
+                    if (raw.startsWith('```')) {
+                        raw = raw
+                            .replace(/^```(?:json)?\s*/i, '')
+                            .replace(/\s*```$/, '')
+                            .trim();
+                    }
+
+                    let parsed = JSON.parse(raw);
+                    if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+                    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                        throw new Error('Il contenuto del backup non è un oggetto JSON valido.');
+                    }
+
+                    const importedData = parsed.appData && typeof parsed.appData === 'object'
+                        ? parsed.appData
+                        : parsed;
+
+                    if (!Array.isArray(importedData.soci) &&
+                        !Array.isArray(importedData.accompagnatori) &&
+                        !Array.isArray(importedData.trasferteAttive) &&
+                        !Array.isArray(importedData.archivioTrasferte)) {
+                        throw new Error('Il file non contiene un backup riconoscibile del Club Napoli.');
+                    }
+
+                    appData = { ...appData, ...importedData };
+                    if (parsed.logo) localStorage.setItem('clubNapoliLogo', parsed.logo);
+
+                    normalizeData();
+                    const localSaved = saveLocalDataSafely();
+                    updateStatus("Salvataggio in corso...");
+
+                    db.ref('clubData').set(appData)
+                        .then(() => {
+                            updateStatus("Sincronizzato Cloud");
+                            updateLogoUI();
+                            initRenewalSeasons();
+                            renderAll();
+
+                            if (localSaved) {
+                                Swal.fire('Importato', 'Dati ripristinati con successo.', 'success');
+                            } else {
+                                Swal.fire(
+                                    'Importato',
+                                    'Dati ripristinati e salvati sul Cloud.<br><small>Lo spazio locale del browser è pieno, quindi la copia offline non è stata aggiornata.</small>',
+                                    'success'
+                                );
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Errore salvataggio Cloud dopo importazione:', err);
+                            updateStatus("Offline - In attesa di rete");
+                            Swal.fire(
+                                'Importazione completata solo in memoria',
+                                'I dati sono stati caricati, ma non è stato possibile salvarli né nel browser né sul Cloud.<br><small>' + (err.message || 'Errore di connessione.') + '</small>',
+                                'warning'
+                            );
+                        });
+                } catch(err) {
+                    console.error('Errore importazione JSON:', err);
+                    Swal.fire('Errore', `File JSON non valido.<br><small>${err.message || 'Formato non riconosciuto.'}</small>`, 'error');
+                }
             };
-            reader.readAsText(file);
+            reader.onerror = function() {
+                Swal.fire('Errore', 'Impossibile leggere il file selezionato.', 'error');
+            };
+            reader.readAsText(file, 'UTF-8');
             event.target.value = '';
         }
 
