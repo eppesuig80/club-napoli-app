@@ -1647,7 +1647,7 @@
                     String(index + 1),
                     `${participant.cognome || ''} ${participant.nome || ''}`.trim(),
                     formatDateIT(full.dataNascita),
-                    full.residenza || '',
+                    `${full.residenza || ''}${full.provResidenza ? ` (${full.provResidenza})` : ''}`,
                     full.tessera || ''
                 ];
                 if (options.cf) row.push(full.cf || '');
