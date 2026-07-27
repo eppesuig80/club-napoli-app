@@ -1328,6 +1328,7 @@
                     <td>${formatDateIT(a.date)}</td>
                     <td><span class="badge bg-secondary">${a.count}</span></td>
                     <td>
+                        <button class="btn btn-sm btn-danger" onclick="askArchiveTripPDFOptions('${a.id}')"><i class="fas fa-print"></i> Stampa</button>
                         <button class="btn btn-sm btn-primary" onclick="restoreTrip('${a.id}')"><i class="fas fa-folder-open"></i> Ripristina (Modifica)</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteArchive('${a.id}')"><i class="fas fa-trash"></i></button>
                     </td>
@@ -1566,6 +1567,105 @@
 
             tempPDFDoc = doc;
             currentPdfFileName = `${title.replace(/ /g, '_')}.pdf`;
+            const pdfOutput = doc.output('bloburl');
+            tempPDFBlobUrl = pdfOutput;
+            document.getElementById('pdfPreviewIframe').src = pdfOutput;
+            const modal = new bootstrap.Modal(document.getElementById('pdfPreviewModal'));
+            modal.show();
+        }
+
+        async function askArchiveTripPDFOptions(tripId) {
+            const trip = appData.archivioTrasferte.find(t => t.id === tripId);
+            if (!trip || !trip.list || trip.list.length === 0) {
+                Swal.fire('Attenzione', 'Nessun partecipante nella trasferta conclusa.', 'warning');
+                return;
+            }
+
+            const { value: options } = await Swal.fire({
+                title: 'Opzioni Stampa Trasferta Conclusa',
+                html: `
+                    <div class="text-start ms-4">
+                        <div class="form-check fs-5 mb-3">
+                            <input class="form-check-input" type="checkbox" id="optArchiveCF">
+                            <label class="form-check-label" for="optArchiveCF">Includi <b>Codice Fiscale</b></label>
+                        </div>
+                        <div class="form-check fs-5 mb-3">
+                            <input class="form-check-input" type="checkbox" id="optArchiveScadenza">
+                            <label class="form-check-label" for="optArchiveScadenza">Includi <b>Scadenza</b></label>
+                        </div>
+                        <div class="form-check fs-5">
+                            <input class="form-check-input" type="checkbox" id="optArchiveCodSic">
+                            <label class="form-check-label" for="optArchiveCodSic">Includi <b>Cod. Sic</b></label>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Avanti <i class="fas fa-arrow-right"></i>',
+                cancelButtonText: 'Annulla',
+                preConfirm: () => ({
+                    cf: document.getElementById('optArchiveCF').checked,
+                    scadenza: document.getElementById('optArchiveScadenza').checked,
+                    codSic: document.getElementById('optArchiveCodSic').checked
+                })
+            });
+
+            if (!options) return;
+
+            const { value: fontSize } = await Swal.fire({
+                title: 'Dimensione Font',
+                input: 'number',
+                inputValue: '10',
+                inputAttributes: { min: 6, max: 20, step: 1 },
+                showCancelButton: true,
+                confirmButtonText: 'Anteprima',
+                cancelButtonText: 'Annulla',
+                inputValidator: value => {
+                    const size = parseInt(value, 10);
+                    if (!value || Number.isNaN(size) || size < 6 || size > 20) {
+                        return 'Inserisci una dimensione da 6 a 20.';
+                    }
+                }
+            });
+
+            if (fontSize) {
+                previewArchiveTripPDF(trip, options, parseInt(fontSize, 10));
+            }
+        }
+
+        function previewArchiveTripPDF(trip, options, fontSize) {
+            const doc = buildBasePDF(`Trasferta conclusa: ${trip.name || 'Senza Nome'} - ${formatDateIT(trip.date)}`);
+            doc.text(`Totale Partecipanti: ${trip.list.length}`, 40, 90);
+
+            const head = [['N°', 'Nominativo', 'Nascita', 'Residenza', 'Tessera']];
+            if (options.cf) head[0].push('Codice Fiscale');
+            if (options.scadenza) head[0].push('Scadenza');
+            if (options.codSic) head[0].push('Cod. Sic');
+
+            const body = trip.list.map((participant, index) => {
+                const full = getFullMemberData(participant.refId, participant.originType);
+                const row = [
+                    String(index + 1),
+                    `${participant.cognome || ''} ${participant.nome || ''}`.trim(),
+                    formatDateIT(full.dataNascita),
+                    full.residenza || '',
+                    full.tessera || ''
+                ];
+                if (options.cf) row.push(full.cf || '');
+                if (options.scadenza) row.push(formatDateIT(full.scadenza));
+                if (options.codSic) row.push(full.codSic || '');
+                return row;
+            });
+
+            doc.autoTable({
+                startY: 105,
+                head: head,
+                body: body,
+                styles: { fontSize: fontSize },
+                headStyles: { fillColor: [18, 47, 103] }
+            });
+
+            tempPDFDoc = doc;
+            currentPdfFileName = `Trasferta_Conclusa_${(trip.name || 'Senza_Nome').replace(/[^a-z0-9]/gi, '_')}.pdf`;
             const pdfOutput = doc.output('bloburl');
             tempPDFBlobUrl = pdfOutput;
             document.getElementById('pdfPreviewIframe').src = pdfOutput;
