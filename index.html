@@ -1731,7 +1731,7 @@
                 const full = getFullMemberData(t.refId, t.originType);
                 const row = [
                     (idx + 1).toString(), t.cognome + " " + t.nome,
-                    formatDateIT(full.dataNascita), full.residenza || '',
+                    formatDateIT(full.dataNascita), `${full.residenza || ''}${full.provResidenza ? ` (${full.provResidenza})` : ''}`,
                     full.cf || '', full.tessera || ''
                 ];
                 if(includeCodSic) row.push(full.codSic || '');
