@@ -1487,11 +1487,47 @@
             modal.show();
         }
 
-        function printExpiredPDF() { askStatusPDFOptions('expired', 'Tessere Scadute', [220, 53, 69]); }
+        async function printExpiredPDF() {
+            const season = appData.renewalSeason;
+            const seasonKey = safeFirebaseKey(season);
+            const allExpired = appData.soci.filter(x => checkStatus(x) === 'expired');
+            const renewedExpired = allExpired.filter(x => x.rinnovi && x.rinnovi[seasonKey]);
+
+            const { value: expiredScope } = await Swal.fire({
+                title: 'Quali soci scaduti vuoi stampare?',
+                html: `
+                    <div class="text-start">
+                        <label class="form-check border rounded p-3 mb-2 d-block">
+                            <input class="form-check-input me-2" type="radio" name="expiredScope" value="all" checked>
+                            <span class="fw-bold">Tutti gli scaduti</span>
+                            <small class="d-block text-muted ms-4">Tutti i soci con tessera scaduta (${allExpired.length})</small>
+                        </label>
+                        <label class="form-check border rounded p-3 d-block">
+                            <input class="form-check-input me-2" type="radio" name="expiredScope" value="renewed">
+                            <span class="fw-bold">Solo i rinnovati</span>
+                            <small class="d-block text-muted ms-4">Soci rinnovati ${season} con tessera scaduta (${renewedExpired.length})</small>
+                        </label>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Avanti <i class="fas fa-arrow-right"></i>',
+                cancelButtonText: 'Annulla',
+                preConfirm: () => document.querySelector('input[name="expiredScope"]:checked')?.value || 'all'
+            });
+
+            if (!expiredScope) return;
+            askStatusPDFOptions('expired', 'Tessere Scadute', [220, 53, 69], expiredScope);
+        }
+
         function printExpiringPDF() { askStatusPDFOptions('expiring', 'Tessere in Scadenza', [253, 126, 20]); }
 
-        async function askStatusPDFOptions(statusType, title, color) {
-            const total = [...appData.soci, ...appData.accompagnatori].filter(x => checkStatus(x) === statusType).length;
+        async function askStatusPDFOptions(statusType, title, color, expiredScope = null) {
+            let statusSource = statusType === 'expired' ? [...appData.soci] : [...appData.soci, ...appData.accompagnatori];
+            if (statusType === 'expired' && expiredScope === 'renewed') {
+                const seasonKey = safeFirebaseKey(appData.renewalSeason);
+                statusSource = statusSource.filter(x => x.rinnovi && x.rinnovi[seasonKey]);
+            }
+            const total = statusSource.filter(x => checkStatus(x) === statusType).length;
             const { value: options } = await Swal.fire({
                 title: `${title} (${total})`,
                 html: `
@@ -1534,14 +1570,21 @@
                     cancelButtonText: 'Annulla'
                 });
                 if (fontSize) {
-                    previewStatusPDF(statusType, title, color, options, parseInt(fontSize));
+                    previewStatusPDF(statusType, title, color, options, parseInt(fontSize), expiredScope);
                 }
             }
         }
 
-        function previewStatusPDF(statusType, title, color, options, fontSize) {
-            const doc = buildBasePDF(title);
-            let combined = [...appData.soci, ...appData.accompagnatori];
+        function previewStatusPDF(statusType, title, color, options, fontSize, expiredScope = null) {
+            const pdfTitle = statusType === 'expired' && expiredScope === 'renewed'
+                ? `${title} - Soci Rinnovati ${appData.renewalSeason}`
+                : title;
+            const doc = buildBasePDF(pdfTitle);
+            let combined = statusType === 'expired' ? [...appData.soci] : [...appData.soci, ...appData.accompagnatori];
+            if (statusType === 'expired' && expiredScope === 'renewed') {
+                const seasonKey = safeFirebaseKey(appData.renewalSeason);
+                combined = combined.filter(x => x.rinnovi && x.rinnovi[seasonKey]);
+            }
             let filtered = combined.filter(x => checkStatus(x) === statusType);
             filtered.sort((a,b) => (a.cognome+" "+a.nome).localeCompare(b.cognome+" "+b.nome));
 
@@ -1566,7 +1609,7 @@
             });
 
             tempPDFDoc = doc;
-            currentPdfFileName = `${title.replace(/ /g, '_')}.pdf`;
+            currentPdfFileName = `${pdfTitle.replace(/[ /]/g, '_')}.pdf`;
             const pdfOutput = doc.output('bloburl');
             tempPDFBlobUrl = pdfOutput;
             document.getElementById('pdfPreviewIframe').src = pdfOutput;
