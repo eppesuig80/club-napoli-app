@@ -500,6 +500,9 @@
             
             // Salva offline
             saveLocalDataSafely();
+
+            // Aggiorna immediatamente tutte le viste senza attendere Firebase o il refresh pagina
+            renderAll();
             updateStatus("Salvataggio in corso...");
 
             // Salva online
