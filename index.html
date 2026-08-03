@@ -714,7 +714,7 @@
 
                 let html = `<td><button class="btn btn-sm btn-success shadow-sm" onclick="addToTrip('${item.id}', '${isSoci?'soci':'acc'}')" title="Aggiungi in Trasferta"><i class="fas fa-bus"></i></button></td>`;
                 html += `<td class="fw-bold">${item.cognome} ${item.nome}</td>`;
-                html += `<td>${formatDateIT(item.dataNascita)}</td>`;
+                html += `<td>${(item.luogo || item.luogoNascita || item.comuneNascita || '').toString().trim() ? `${(item.luogo || item.luogoNascita || item.comuneNascita).toString().trim().toUpperCase()}${(item.dataNascita || item.data_nascita || item.nascita) ? ` (${formatDateIT(item.dataNascita || item.data_nascita || item.nascita)})` : ''}` : formatDateIT(item.dataNascita || item.data_nascita || item.nascita)}</td>`;
                 html += `<td>${item.residenza || ''} ${item.provResidenza ? `(${item.provResidenza})`:''}</td>`;
                 html += `<td class="text-uppercase">${item.cf || ''}</td>`;
                 html += `<td>${item.tessera || ''}</td>`;
@@ -1389,6 +1389,42 @@
             return list.find(x => x.id === refId) || {};
         }
 
+        function formatPrintMemberName(member = {}, fallback = {}) {
+            const cognome = member.cognome || fallback.cognome || '';
+            const nome = member.nome || fallback.nome || '';
+            const nominativo = `${cognome} ${nome}`.trim();
+
+            // Recupera il luogo e la data anche da eventuali nomi campo alternativi
+            // già presenti nei backup/versioni precedenti dell'app.
+            const luogo = (
+                member.luogo ||
+                member.luogoNascita ||
+                member.comuneNascita ||
+                fallback.luogo ||
+                fallback.luogoNascita ||
+                fallback.comuneNascita ||
+                ''
+            ).toString().trim();
+
+            const dataRaw =
+                member.dataNascita ||
+                member.data_nascita ||
+                member.nascita ||
+                fallback.dataNascita ||
+                fallback.data_nascita ||
+                fallback.nascita ||
+                '';
+            const dataNascita = formatDateIT(dataRaw);
+
+            const nascita = luogo && dataNascita
+                ? `${luogo.toUpperCase()} (${dataNascita})`
+                : luogo
+                    ? luogo.toUpperCase()
+                    : (dataNascita ? `(${dataNascita})` : '');
+
+            return nascita ? `${nominativo}, ${nascita}` : nominativo;
+        }
+
         function buildBasePDF(title) {
             const doc = new jsPDF('p', 'pt', 'a4');
             const logo = getActiveLogo();
@@ -1467,7 +1503,7 @@
             if(includeCodSic) head[0].push('Cod/Sic');
 
             const tableData = data.map(s => {
-                const row = [s.cognome + " " + s.nome];
+                const row = [formatPrintMemberName(s)];
                 if(includeCF) row.push(s.cf || '');
                 if(includeTessera) row.push(s.tessera || '');
                 if(includeScadenza) row.push(formatDateIT(s.scadenza) || '');
@@ -1600,7 +1636,7 @@
             if (options.qualifica) head[0].push('Qualifica');
 
             const tableData = filtered.map(x => {
-                const row = [x.cognome + " " + x.nome];
+                const row = [formatPrintMemberName(x)];
                 if (options.tessera) row.push(x.tessera || '');
                 if (options.scadenza) row.push(formatDateIT(x.scadenza));
                 if (options.qualifica) row.push((x.rinnovi !== undefined) ? 'Socio' : 'Accompagnatore');
@@ -1682,7 +1718,7 @@
             const doc = buildBasePDF(`Trasferta conclusa: ${trip.name || 'Senza Nome'} - ${formatDateIT(trip.date)}`);
             doc.text(`Totale Partecipanti: ${trip.list.length}`, 40, 90);
 
-            const head = [['N°', 'Nominativo', 'Nascita', 'Residenza', 'Tessera']];
+            const head = [['N°', 'Nominativo', 'Residenza', 'Tessera']];
             if (options.cf) head[0].push('Codice Fiscale');
             if (options.scadenza) head[0].push('Scadenza');
             if (options.codSic) head[0].push('Cod. Sic');
@@ -1691,8 +1727,7 @@
                 const full = getFullMemberData(participant.refId, participant.originType);
                 const row = [
                     String(index + 1),
-                    `${participant.cognome || ''} ${participant.nome || ''}`.trim(),
-                    formatDateIT(full.dataNascita),
+                    formatPrintMemberName(full, participant),
                     `${full.residenza || ''}${full.provResidenza ? ` (${full.provResidenza})` : ''}`,
                     full.tessera || ''
                 ];
@@ -1769,15 +1804,15 @@
             const doc = buildBasePDF(`Trasferta: ${trip.name || 'Senza Nome'} - ${formatDateIT(trip.date)}`);
             doc.text(`Totale Partecipanti: ${trip.list.length}`, 40, 90);
 
-            const head = [['N°', 'Nominativo', 'Nascita', 'Residenza', 'CF', 'Tessera']];
+            const head = [['N°', 'Nominativo', 'Residenza', 'CF', 'Tessera']];
             if(includeCodSic) head[0].push('Cod/Sic'); 
             if(includeNote) head[0].push('Note'); 
 
             const body = trip.list.map((t, idx) => {
                 const full = getFullMemberData(t.refId, t.originType);
                 const row = [
-                    (idx + 1).toString(), t.cognome + " " + t.nome,
-                    formatDateIT(full.dataNascita), `${full.residenza || ''}${full.provResidenza ? ` (${full.provResidenza})` : ''}`,
+                    (idx + 1).toString(), formatPrintMemberName(full, t),
+                    `${full.residenza || ''}${full.provResidenza ? ` (${full.provResidenza})` : ''}`,
                     full.cf || '', full.tessera || ''
                 ];
                 if(includeCodSic) row.push(full.codSic || '');
