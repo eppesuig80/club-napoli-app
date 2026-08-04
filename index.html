@@ -383,6 +383,31 @@
         let tempPDFDoc = null; 
         let currentPdfFileName = "Documento.pdf";
 
+        // Ottimizzazione aggiornamenti: evita render e invii Cloud ripetuti ravvicinati.
+        let renderAllFrame = null;
+        let cloudSaveTimer = null;
+
+        function scheduleRenderAll() {
+            if (renderAllFrame !== null) return;
+            renderAllFrame = requestAnimationFrame(() => {
+                renderAllFrame = null;
+                renderAll();
+            });
+        }
+
+        function scheduleCloudSave(delay = 300) {
+            if (cloudSaveTimer !== null) clearTimeout(cloudSaveTimer);
+            cloudSaveTimer = setTimeout(() => {
+                cloudSaveTimer = null;
+                db.ref('clubData').set(appData)
+                    .then(() => updateStatus("Sincronizzato Cloud"))
+                    .catch(err => {
+                        console.error("Errore salvataggio Cloud:", err);
+                        updateStatus("Offline - In attesa di rete");
+                    });
+            }, delay);
+        }
+
         document.addEventListener("DOMContentLoaded", initApp);
         document.addEventListener("click", closeAllAutocompletes);
 
@@ -493,25 +518,22 @@
             });
         }
 
-        function saveDataImmediate() {
+        function saveDataImmediate(options = {}) {
+            const render = options.render !== false;
+            const cloudDelay = Number.isFinite(options.cloudDelay) ? options.cloudDelay : 300;
+
             appData._lastModified = Date.now();
             normalizeData();
-            updateExpiryCounters();
-            
-            // Salva offline
+
+            // Salvataggio locale immediato.
             saveLocalDataSafely();
 
-            // Aggiorna immediatamente tutte le viste senza attendere Firebase o il refresh pagina
-            renderAll();
+            // Un solo aggiornamento grafico per frame, anche con più operazioni ravvicinate.
+            if (render) scheduleRenderAll();
             updateStatus("Salvataggio in corso...");
 
-            // Salva online
-            db.ref('clubData').set(appData)
-                .then(() => updateStatus("Sincronizzato Cloud"))
-                .catch(err => {
-                    console.error("Errore salvataggio Cloud:", err);
-                    updateStatus("Offline - In attesa di rete");
-                });
+            // Raggruppa modifiche ravvicinate in un unico invio completo a Firebase.
+            scheduleCloudSave(cloudDelay);
         }
 
         function mergeData(newData, currentData) {
@@ -519,7 +541,6 @@
                 appData = { ...newData };
                 normalizeData();
                 saveDataImmediate();
-                renderAll();
             }
         }
 
@@ -562,13 +583,11 @@
         function setRenewalSeason(season) {
             appData.renewalSeason = season;
             saveDataImmediate();
-            renderTable('soci');
         }
 
         function setRenewalFilter(filter) {
             appData.renewalFilter = filter;
             saveDataImmediate();
-            renderTable('soci');
         }
 
         function updateLogoUI() {
@@ -801,9 +820,7 @@
             }
 
             saveDataImmediate();
-            renderAll();
             cancelEdit(type);
-            renderTable(type);
             Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Salvato!', showConfirmButton: false, timer: 1500 });
         }
 
@@ -885,7 +902,6 @@
                 });
 
                 saveDataImmediate();
-                renderAll();
                 Swal.fire({
                     toast: true,
                     position: 'top-end',
@@ -915,21 +931,8 @@
                         trip.list = trip.list.filter(x => !(x.refId === id && x.originType === type));
                     });
                     
-                    // Aggiorna subito la schermata senza attendere Firebase o ricaricare la pagina
-                    normalizeData();
-                    updateExpiryCounters();
-                    saveLocalDataSafely();
-                    renderTable(type);
-                    renderTrips();
-                    renderArchive();
-
-                    // Poi salva anche su Firebase mantenendo la sincronizzazione esistente
+                    // Salva e aggiorna una sola volta tutte le viste interessate.
                     saveDataImmediate();
-                    setTimeout(() => {
-                        renderTable(type);
-                        renderTrips();
-                        renderArchive();
-                    }, 0);
                     Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Eliminato!', showConfirmButton: false, timer: 1500 });
                 }
             });
@@ -957,13 +960,11 @@
                         delete item.rinnovi[seasonKey];
                         delete item.rinnovi[season];
                         saveDataImmediate();
-                        renderTable('soci');
                     }
                 });
             } else {
                 item.rinnovi[seasonKey] = true;
                 saveDataImmediate();
-                renderTable('soci');
                 Swal.fire({toast: true, position: 'top-end', icon: 'success', title: `${item.nome} ha rinnovato!`, showConfirmButton: false, timer: 1500});
             }
         }
@@ -1026,7 +1027,6 @@
             });
 
             saveDataImmediate();
-            renderTrips();
             Swal.fire({toast:true, position:'top-end', icon:'success', title:`${item.cognome} ${item.nome} aggiunto alla trasferta`, showConfirmButton:false, timer:1500});
         }
 
@@ -1087,7 +1087,6 @@
             });
 
             saveDataImmediate();
-            renderTrips();
             Swal.fire({
                 toast: true,
                 position: 'top-end',
@@ -1287,7 +1286,6 @@
                 }).then(res => {
                     if(res.isConfirmed) {
                         appData.trasferteAttive.splice(tripIndex, 1);
-                        renderTrips();
                         saveDataImmediate();
                     }
                 });
@@ -1312,8 +1310,6 @@
 
             appData.trasferteAttive.splice(tripIndex, 1);
 
-            renderTrips();
-            renderArchive();
             saveDataImmediate();
             Swal.fire('Archiviata', 'Trasferta spostata nell\'archivio concluse.', 'success');
             toggleSection('archiveTab');
@@ -1354,8 +1350,6 @@
 
                 appData.archivioTrasferte.splice(archIndex, 1);
 
-                renderArchive();
-                renderTrips();
                 saveDataImmediate();
                 toggleSection('tripTab');
                 Swal.fire({toast:true, position:'top-end', icon:'success', title:'Trasferta Riaperta', showConfirmButton:false, timer:1500});
@@ -1373,7 +1367,6 @@
                 if (result.isConfirmed) {
                     appData.archivioTrasferte = appData.archivioTrasferte.filter(x => x.id !== id);
                     appData.deletedArchiveIds.push(id);
-                    renderArchive();
                     saveDataImmediate();
                 }
             });
@@ -1942,7 +1935,7 @@
         }
 
         function downloadSelfContained() {
-            saveDataImmediate(); 
+            saveDataImmediate({ render: false, cloudDelay: 0 }); 
             const htmlContent = document.documentElement.outerHTML;
             const exportData = { ...appData, _lastModified: Date.now() };
             const injectedScript = `<script id="injected-data">window.__INJECTED_DATA__ = ${JSON.stringify(exportData)};<\/script>`;
