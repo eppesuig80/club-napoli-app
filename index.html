@@ -1846,13 +1846,16 @@
         // ==========================================
         function exportData() {
             const exportObj = { appData: appData, logo: localStorage.getItem('clubNapoliLogo') || null };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+            const json = JSON.stringify(exportObj);
+            const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
             const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", `Backup_Club_Napoli_${new Date().toISOString().split('T')[0]}.json`);
+            downloadAnchorNode.href = url;
+            downloadAnchorNode.download = `Backup_Club_Napoli_${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
 
         function importData(event) {
