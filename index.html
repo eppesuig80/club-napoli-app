@@ -1844,14 +1844,26 @@
         // ==========================================
         // 8. EXPORT / IMPORT BACKUP
         // ==========================================
-        function exportData() {
+        async function exportData() {
             const exportObj = { appData: appData, logo: localStorage.getItem('clubNapoliLogo') || null };
             const json = JSON.stringify(exportObj);
+            const fileName = `Backup_Club_Napoli_${new Date().toISOString().split('T')[0]}.json`;
+            const file = new File([json], fileName, { type: 'application/json' });
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({ files: [file] });
+                    return;
+                } catch (err) {
+                    if (err && err.name === 'AbortError') return;
+                }
+            }
+
             const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.href = url;
-            downloadAnchorNode.download = `Backup_Club_Napoli_${new Date().toISOString().split('T')[0]}.json`;
+            downloadAnchorNode.download = fileName;
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
