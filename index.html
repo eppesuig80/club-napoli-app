@@ -1846,28 +1846,32 @@
         // ==========================================
         async function exportData() {
             const exportObj = { appData: appData, logo: localStorage.getItem('clubNapoliLogo') || null };
-            const json = JSON.stringify(exportObj);
+            const json = JSON.stringify(exportObj, null, 2);
             const fileName = `Backup_Club_Napoli_${new Date().toISOString().split('T')[0]}.json`;
-            const file = new File([json], fileName, { type: 'application/json' });
+            const file = new File([json], fileName, { type: 'text/plain' });
 
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            // Smartphone: apre direttamente il menu nativo (su iPhone: "Salva su File").
+            if (navigator.share) {
                 try {
-                    await navigator.share({ files: [file] });
+                    await navigator.share({ files: [file], title: fileName });
                     return;
                 } catch (err) {
                     if (err && err.name === 'AbortError') return;
+                    console.warn('Condivisione file non disponibile, provo il download diretto.', err);
                 }
             }
 
-            const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+            // Fallback PC/Android/browser che supportano il download classico.
+            const blob = new Blob([json], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.href = url;
-            downloadAnchorNode.download = fileName;
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
         }
 
         function importData(event) {
