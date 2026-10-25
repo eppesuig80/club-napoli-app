@@ -386,6 +386,8 @@
         // Ottimizzazione aggiornamenti: evita render e invii Cloud ripetuti ravvicinati.
         let renderAllFrame = null;
         let cloudSaveTimer = null;
+        let cloudInitialized = false;
+        let localChangesPending = false;
 
         function scheduleRenderAll() {
             if (renderAllFrame !== null) return;
@@ -397,10 +399,18 @@
 
         function scheduleCloudSave(delay = 300) {
             if (cloudSaveTimer !== null) clearTimeout(cloudSaveTimer);
+            // Non inviare dati locali prima di aver letto il database condiviso.
+            if (!cloudInitialized) return;
             cloudSaveTimer = setTimeout(() => {
                 cloudSaveTimer = null;
-                db.ref('clubData').set(appData)
-                    .then(() => updateStatus("Sincronizzato Cloud"))
+                const outgoing = JSON.parse(JSON.stringify(appData));
+                db.ref('clubData').set(outgoing)
+                    .then(() => {
+                        if (appData._lastModified === outgoing._lastModified) {
+                            localChangesPending = false;
+                            updateStatus("Sincronizzato Cloud");
+                        }
+                    })
                     .catch(err => {
                         console.error("Errore salvataggio Cloud:", err);
                         updateStatus("Offline - In attesa di rete");
@@ -412,20 +422,15 @@
         document.addEventListener("click", closeAllAutocompletes);
 
         function initApp() {
-            loadData(); // Carica prima offline, poi si sintonizza col Cloud
-            initRenewalSeasons();
             updateLogoUI();
-            
-            if (window.__INJECTED_DATA__) {
-                mergeData(window.__INJECTED_DATA__, appData);
-            }
+            loadData(); // I dati cloud vengono letti prima di qualsiasi scrittura iniziale.
         }
 
         // ==========================================
         // 2. CORE STORAGE LOGIC & CLOUD SYNC
         // ==========================================
         function loadData() {
-            // 1. Carica subito i dati salvati offline sul dispositivo
+            // Mostra la cache locale, se disponibile, durante la connessione.
             try {
                 const stored = localStorage.getItem('clubNapoliData');
                 if (stored) {
@@ -436,27 +441,44 @@
                 }
             } catch(e) { console.error("Errore caricamento locale", e); }
 
-            // 2. Ascolta Firebase in TEMPO REALE
+            // Il Cloud e la fonte condivisa: non decidere solo tramite il timestamp
+            // della cache, che sul tablet puo essere piu recente pur essendo vuota.
             db.ref('clubData').on('value', (snapshot) => {
                 const dataCloud = snapshot.val();
+                const firstCloudRead = !cloudInitialized;
+                cloudInitialized = true;
                 if (dataCloud) {
-                    if (dataCloud._lastModified > (appData._lastModified || 0)) {
+                    if (!localChangesPending || firstCloudRead) {
                         appData = { ...appData, ...dataCloud };
                         normalizeData();
                         saveLocalDataSafely();
                         renderAll();
                         updateStatus("Sincronizzato Cloud");
-                    } else if (dataCloud._lastModified === appData._lastModified) {
-                        updateStatus("Sincronizzato Cloud");
                     }
-                } else {
-                    if(appData.soci.length > 0 || appData.accompagnatori.length > 0) {
-                        saveDataImmediate();
-                    } else {
-                        updateStatus("Database Connesso (Vuoto)");
-                        renderAll();
+                } else if (firstCloudRead) {
+                    // Un Cloud vuoto non deve essere ripopolato in automatico
+                    // con una cache potenzialmente obsoleta di un dispositivo.
+                    appData = {
+                        soci: [], accompagnatori: [], trasferteAttive: [],
+                        archivioTrasferte: [], renewalSeason: '',
+                        renewalFilter: 'all', deletedArchiveIds: [],
+                        deletedMemberIds: [], _lastModified: 0
+                    };
+                    saveLocalDataSafely();
+                    renderAll();
+                    updateStatus("Database Connesso (Vuoto)");
+                }
+                if (firstCloudRead) {
+                    // Imposta la stagione nella UI senza scrivere su Firebase
+                    // durante la fase iniziale di caricamento.
+                    initRenewalSeasons(true);
+                    if (window.__INJECTED_DATA__) {
+                        mergeData(window.__INJECTED_DATA__, appData);
                     }
                 }
+            }, (err) => {
+                console.error('Errore lettura Firebase:', err);
+                updateStatus("Offline - In attesa di rete");
             });
         }
 
@@ -522,7 +544,8 @@
             const render = options.render !== false;
             const cloudDelay = Number.isFinite(options.cloudDelay) ? options.cloudDelay : 300;
 
-            appData._lastModified = Date.now();
+            appData._lastModified = Math.max(Date.now(), (Number(appData._lastModified) || 0) + 1);
+            localChangesPending = true;
             normalizeData();
 
             // Salvataggio locale immediato.
@@ -566,7 +589,7 @@
             return `${parseInt(parts[0])-1}/${parseInt(parts[1])-1}`;
         }
 
-        function initRenewalSeasons() {
+        function initRenewalSeasons(skipSave = false) {
             const current = getCurrentFootballSeason();
             const prev = getPreviousFootballSeason();
             const select = document.getElementById("seasonSelect");
@@ -574,7 +597,7 @@
             
             if (!appData.renewalSeason || (appData.renewalSeason !== current && appData.renewalSeason !== prev)) {
                 appData.renewalSeason = current;
-                saveDataImmediate();
+                if (!skipSave) saveDataImmediate();
             }
             select.value = appData.renewalSeason;
             document.getElementById("renewalFilter").value = appData.renewalFilter;
@@ -1911,12 +1934,15 @@
                     appData = { ...appData, ...importedData };
                     if (parsed.logo) localStorage.setItem('clubNapoliLogo', parsed.logo);
 
+                    appData._lastModified = Math.max(Date.now(), (Number(appData._lastModified) || 0) + 1);
+                    localChangesPending = true;
                     normalizeData();
                     const localSaved = saveLocalDataSafely();
                     updateStatus("Salvataggio in corso...");
 
                     db.ref('clubData').set(appData)
                         .then(() => {
+                            localChangesPending = false;
                             updateStatus("Sincronizzato Cloud");
                             updateLogoUI();
                             initRenewalSeasons();
