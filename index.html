@@ -136,7 +136,7 @@
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fas fa-users"></i> Elenco Soci Iscritti</h5>
                         <div>
-                            <button class="btn btn-sm btn-success me-2 fw-bold shadow-sm" onclick="toggleForm('soci', true)"><i class="fas fa-plus"></i> Nuovo Socio</button>
+                            <button class="btn btn-sm btn-success me-2 fw-bold shadow-sm" onclick="cfReset('soci'); toggleForm('soci', true)"><i class="fas fa-plus"></i> Nuovo Socio</button>
                             <button class="btn btn-sm btn-outline-light" onclick="toggleMaximize('cardListaSoci')"><i class="fas fa-expand"></i></button>
                         </div>
                     </div>
@@ -194,7 +194,7 @@
                                             <select id="soci_sesso" class="form-select"><option value="M">Maschio</option><option value="F">Femmina</option></select>
                                         </div>
                                         <div class="col-md-4"><label class="fw-bold">Data Nascita</label><input type="date" id="soci_dataNascita" class="form-control"></div>
-                                        <div class="col-md-4"><label class="fw-bold">Codice Fiscale</label><input type="text" id="soci_cf" class="form-control text-uppercase" maxlength="16"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Codice Fiscale</label><input type="text" id="soci_cf" class="form-control text-uppercase" maxlength="16" autocomplete="off"><small id="soci_cf_auto_info" class="text-muted fw-normal">Compilazione automatica con i dati di nascita.</small></div>
                                         <div class="col-md-8"><label class="fw-bold">Luogo Nascita</label><input type="text" id="soci_luogo" class="form-control"></div>
                                         <div class="col-md-4"><label class="fw-bold">Provincia</label><input type="text" id="soci_prov" class="form-control" maxlength="2" placeholder="Es: NA"></div>
                                         <div class="col-md-8"><label class="fw-bold">Residenza</label><input type="text" id="soci_residenza" class="form-control"></div>
@@ -222,7 +222,7 @@
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fas fa-user-friends"></i> Elenco Accompagnatori</h5>
                         <div>
-                            <button class="btn btn-sm btn-success me-2 fw-bold shadow-sm" onclick="toggleForm('acc', true)"><i class="fas fa-plus"></i> Nuovo Accompagnatore</button>
+                            <button class="btn btn-sm btn-success me-2 fw-bold shadow-sm" onclick="cfReset('acc'); toggleForm('acc', true)"><i class="fas fa-plus"></i> Nuovo Accompagnatore</button>
                             <button class="btn btn-sm btn-outline-light" onclick="toggleMaximize('cardListaAcc')"><i class="fas fa-expand"></i></button>
                         </div>
                     </div>
@@ -264,7 +264,7 @@
                                             <select id="acc_sesso" class="form-select"><option value="M">Maschio</option><option value="F">Femmina</option></select>
                                         </div>
                                         <div class="col-md-4"><label class="fw-bold">Data Nascita</label><input type="date" id="acc_dataNascita" class="form-control"></div>
-                                        <div class="col-md-4"><label class="fw-bold">Codice Fiscale</label><input type="text" id="acc_cf" class="form-control text-uppercase" maxlength="16"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Codice Fiscale</label><input type="text" id="acc_cf" class="form-control text-uppercase" maxlength="16" autocomplete="off"><small id="acc_cf_auto_info" class="text-muted fw-normal">Compilazione automatica con i dati di nascita.</small></div>
                                         <div class="col-md-8"><label class="fw-bold">Luogo Nascita</label><input type="text" id="acc_luogo" class="form-control"></div>
                                         <div class="col-md-4"><label class="fw-bold">Provincia</label><input type="text" id="acc_prov" class="form-control" maxlength="2"></div>
                                         <div class="col-md-8"><label class="fw-bold">Residenza</label><input type="text" id="acc_residenza" class="form-control"></div>
@@ -363,6 +363,170 @@
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.database();
+
+
+        // CALCOLO AUTOMATICO CODICE FISCALE - SOLO MODULI SOCI/ACCOMPAGNATORI
+        // Il risultato e' teorico: verificare sempre il codice ufficiale (es. omocodia).
+        const cfAutoState = {
+            soci: { manual: false, revision: 0, generated: '' },
+            acc:  { manual: false, revision: 0, generated: '' }
+        };
+        let cfMunicipalitiesPromise = null;
+
+        function cfNormalize(value) {
+            return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        }
+
+        function cfLetters(value) {
+            return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z]/g, '').toUpperCase();
+        }
+
+        function cfSurnameCode(value) {
+            const s = cfLetters(value);
+            const consonants = s.replace(/[AEIOU]/g, '');
+            const vowels = s.replace(/[^AEIOU]/g, '');
+            return (consonants + vowels + 'XXX').slice(0, 3);
+        }
+
+        function cfNameCode(value) {
+            const s = cfLetters(value);
+            const consonants = s.replace(/[AEIOU]/g, '');
+            const vowels = s.replace(/[^AEIOU]/g, '');
+            const selected = consonants.length >= 4
+                ? consonants[0] + consonants[2] + consonants[3]
+                : consonants;
+            return (selected + vowels + 'XXX').slice(0, 3);
+        }
+
+        // Archivio open dei comuni italiani: codice catastale e sigla provincia.
+        // Il database e' consultato dal browser, senza inviare i dati del socio.
+        function cfLoadMunicipalities() {
+            if (!cfMunicipalitiesPromise) {
+                cfMunicipalitiesPromise = fetch('https://cdn.jsdelivr.net/gh/RP92/comuni-italiani@main/data/comuni.json')
+                    .then(response => {
+                        if (!response.ok) throw new Error('Elenco comuni non disponibile');
+                        return response.json();
+                    })
+                    .then(rows => {
+                        if (!Array.isArray(rows) || rows.length < 7000) throw new Error('Elenco comuni incompleto');
+                        return rows;
+                    })
+                    .catch(err => { cfMunicipalitiesPromise = null; throw err; });
+            }
+            return cfMunicipalitiesPromise;
+        }
+
+        function cfControlLetter(first15) {
+            const odd = [1,0,5,7,9,13,15,17,19,21,2,4,18,20,11,3,6,8,12,14,16,10,22,25,24,23];
+            let sum = 0;
+            for (let i = 0; i < first15.length; i++) {
+                const c = first15[i];
+                const idx = /[0-9]/.test(c) ? Number(c) : c.charCodeAt(0) - 65;
+                sum += (i % 2 === 0) ? odd[idx] : idx;
+            }
+            return String.fromCharCode(65 + (sum % 26));
+        }
+
+        function cfBuild(name, surname, sex, isoDate, placeCode) {
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+            if (!match || !/^[A-Z][0-9]{3}$/.test(placeCode)) return '';
+            const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+            const dt = new Date(Date.UTC(year, month - 1, day));
+            if (dt.getUTCFullYear() !== year || dt.getUTCMonth() + 1 !== month || dt.getUTCDate() !== day) return '';
+            if (year < 1800 || year > new Date().getFullYear()) return '';
+            const months = 'ABCDEHLMPRST';
+            const dayCode = String(day + (sex === 'F' ? 40 : 0)).padStart(2, '0');
+            const first15 = cfSurnameCode(surname) + cfNameCode(name)
+                + String(year).slice(-2) + months[month - 1] + dayCode + placeCode;
+            return first15 + cfControlLetter(first15);
+        }
+
+        function cfStatus(type, text) {
+            const node = document.getElementById(`${type}_cf_auto_info`);
+            if (node) node.textContent = text;
+        }
+
+        async function cfUpdate(type) {
+            const state = cfAutoState[type];
+            const revision = ++state.revision;
+            if (state.manual) return;
+            const get = field => document.getElementById(`${type}_${field}`).value.trim();
+            const name = get('nome'), surname = get('cognome'), sex = get('sesso');
+            const date = get('dataNascita'), place = get('luogo'), province = get('prov');
+            const output = document.getElementById(`${type}_cf`);
+            if (!name || !surname || !date || !place || (sex !== 'M' && sex !== 'F')) {
+                if (output.value === state.generated) output.value = '';
+                state.generated = '';
+                cfStatus(type, 'Inserisci nome, cognome, sesso, data e comune di nascita.');
+                return;
+            }
+            cfStatus(type, 'Ricerca codice catastale del comune...');
+            try {
+                const rows = await cfLoadMunicipalities();
+                if (revision !== state.revision || state.manual) return;
+                const key = cfNormalize(place);
+                let matches = rows.filter(r => cfNormalize(r.nome) === key && /^[A-Z][0-9]{3}$/.test(r.codiceCatastale || ''));
+                // La provincia e' necessaria soltanto se esistono piu' comuni omonimi.
+                if (province) matches = matches.filter(r => cfNormalize(r.sigla || r.provincia?.sigla) === cfNormalize(province));
+                const codes = [...new Set(matches.map(r => r.codiceCatastale))];
+                if (codes.length !== 1) {
+                    if (output.value === state.generated) output.value = '';
+                    state.generated = '';
+                    cfStatus(type, codes.length > 1
+                        ? 'Comune ambiguo: indica la sigla della provincia.'
+                        : 'Comune non riconosciuto: controlla nome/provincia o inserisci il CF manualmente.');
+                    return;
+                }
+                const calculated = cfBuild(name, surname, sex, date, codes[0]);
+                if (!calculated) {
+                    cfStatus(type, 'Data di nascita non valida: verifica i dati.');
+                    return;
+                }
+                output.value = calculated;
+                state.generated = calculated;
+                cfStatus(type, 'Codice fiscale teorico calcolato. Verifica eventuali omocodie.');
+            } catch(err) {
+                if (revision !== state.revision || state.manual) return;
+                cfStatus(type, 'Elenco comuni non raggiungibile: riprova o inserisci il CF manualmente.');
+                console.warn('Calcolo CF:', err);
+            }
+        }
+
+        function cfReset(type, editing = false) {
+            const state = cfAutoState[type];
+            ++state.revision;
+            state.manual = editing && !!document.getElementById(`${type}_cf`).value.trim();
+            state.generated = '';
+            cfStatus(type, editing && state.manual
+                ? 'Codice fiscale già registrato: resterà invariato. Modificabile manualmente.'
+                : 'Il codice fiscale si compilerà automaticamente con i dati di nascita.');
+        }
+
+        function cfInitAutomatic() {
+            ['soci', 'acc'].forEach(type => {
+                ['nome', 'cognome', 'sesso', 'dataNascita', 'luogo', 'prov'].forEach(field => {
+                    const el = document.getElementById(`${type}_${field}`);
+                    el.addEventListener('input', () => {
+                        // Se si correggono i dati anagrafici di un socio esistente,
+                        // si mantiene il CF salvato finché non viene svuotato manualmente.
+                        cfUpdate(type);
+                    });
+                    el.addEventListener('change', () => cfUpdate(type));
+                });
+                document.getElementById(`${type}_cf`).addEventListener('input', e => {
+                    const state = cfAutoState[type];
+                    ++state.revision;
+                    state.manual = !!e.target.value.trim();
+                    state.generated = '';
+                    cfStatus(type, state.manual ? 'Codice fiscale inserito manualmente: non sarà sovrascritto.' : 'Calcolo automatico riattivato.');
+                    if (!state.manual) cfUpdate(type);
+                });
+                cfReset(type);
+            });
+        }
+        document.addEventListener('DOMContentLoaded', cfInitAutomatic);
 
         // ==========================================
         // 1. DATA STRUCTURE & PERSISTENCE
@@ -870,6 +1034,7 @@
             document.getElementById(`form${type.charAt(0).toUpperCase() + type.slice(1)}Title`).innerHTML = '<i class="fas fa-edit"></i> Modifica Modulo';
             document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}Submit`).innerHTML = '<i class="fas fa-save"></i> Salva Modifica';
             
+            cfReset(type, true);
             toggleForm(type, true);
             window.scrollTo(0,0);
         }
@@ -880,6 +1045,7 @@
             document.getElementById(`form${type.charAt(0).toUpperCase() + type.slice(1)}Title`).innerHTML = '<i class="fas fa-user-plus"></i> Modulo Iscrizione';
             document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}Submit`).innerHTML = '<i class="fas fa-save"></i> Salva';
             
+            cfReset(type);
             toggleForm(type, false);
         }
 
