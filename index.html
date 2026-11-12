@@ -195,8 +195,12 @@
                                         </div>
                                         <div class="col-md-4"><label class="fw-bold">Data Nascita</label><input type="date" id="soci_dataNascita" class="form-control"></div>
                                         <div class="col-md-4"><label class="fw-bold">Codice Fiscale</label><input type="text" id="soci_cf" class="form-control text-uppercase" maxlength="16" autocomplete="off"><small id="soci_cf_auto_info" class="text-muted fw-normal">Compilazione automatica con i dati di nascita.</small></div>
+                                        <div class="col-md-4"><label class="fw-bold">Nascita in</label><select id="soci_birthMode" class="form-select"><option value="IT">Italia</option><option value="ESTERO">Estero</option></select></div>
+                                        <div class="col-md-8 d-none" id="soci_birthCountryWrap"><label class="fw-bold">Stato estero di nascita</label><select id="soci_birthCountry" class="form-select"><option value="">Caricamento Stati...</option></select><small class="text-muted">Per il codice fiscale viene utilizzato lo Stato, non la città.</small></div>
                                         <div class="col-md-8"><label class="fw-bold">Luogo Nascita</label><input type="text" id="soci_luogo" class="form-control"></div>
                                         <div class="col-md-4"><label class="fw-bold">Provincia</label><input type="text" id="soci_prov" class="form-control" maxlength="2" placeholder="Es: NA"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Residenza in</label><select id="soci_residenceMode" class="form-select"><option value="IT">Italia</option><option value="ESTERO">Estero</option></select></div>
+                                        <div class="col-md-8 d-none" id="soci_residenceCountryWrap"><label class="fw-bold">Stato di residenza</label><input id="soci_residenceCountry" class="form-control" type="text" list="soci_countryNames" placeholder="Es. Francia, Germania, Svizzera"><datalist id="soci_countryNames"></datalist></div>
                                         <div class="col-md-8"><label class="fw-bold">Residenza</label><input type="text" id="soci_residenza" class="form-control"></div>
                                         <div class="col-md-4"><label class="fw-bold">Prov. Residenza</label><input type="text" id="soci_provResidenza" class="form-control" maxlength="2"></div>
                                         <div class="col-md-4"><label class="fw-bold text-primary">N° Tessera</label><input type="text" id="soci_tessera" class="form-control border-primary"></div>
@@ -265,8 +269,12 @@
                                         </div>
                                         <div class="col-md-4"><label class="fw-bold">Data Nascita</label><input type="date" id="acc_dataNascita" class="form-control"></div>
                                         <div class="col-md-4"><label class="fw-bold">Codice Fiscale</label><input type="text" id="acc_cf" class="form-control text-uppercase" maxlength="16" autocomplete="off"><small id="acc_cf_auto_info" class="text-muted fw-normal">Compilazione automatica con i dati di nascita.</small></div>
+                                        <div class="col-md-4"><label class="fw-bold">Nascita in</label><select id="acc_birthMode" class="form-select"><option value="IT">Italia</option><option value="ESTERO">Estero</option></select></div>
+                                        <div class="col-md-8 d-none" id="acc_birthCountryWrap"><label class="fw-bold">Stato estero di nascita</label><select id="acc_birthCountry" class="form-select"><option value="">Caricamento Stati...</option></select><small class="text-muted">Per il codice fiscale viene utilizzato lo Stato, non la città.</small></div>
                                         <div class="col-md-8"><label class="fw-bold">Luogo Nascita</label><input type="text" id="acc_luogo" class="form-control"></div>
                                         <div class="col-md-4"><label class="fw-bold">Provincia</label><input type="text" id="acc_prov" class="form-control" maxlength="2"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Residenza in</label><select id="acc_residenceMode" class="form-select"><option value="IT">Italia</option><option value="ESTERO">Estero</option></select></div>
+                                        <div class="col-md-8 d-none" id="acc_residenceCountryWrap"><label class="fw-bold">Stato di residenza</label><input id="acc_residenceCountry" class="form-control" type="text" list="acc_countryNames" placeholder="Es. Francia, Germania, Svizzera"><datalist id="acc_countryNames"></datalist></div>
                                         <div class="col-md-8"><label class="fw-bold">Residenza</label><input type="text" id="acc_residenza" class="form-control"></div>
                                         <div class="col-md-4"><label class="fw-bold">Prov. Residenza</label><input type="text" id="acc_provResidenza" class="form-control" maxlength="2"></div>
                                         <div class="col-md-4"><label class="fw-bold text-primary">N° Tessera</label><input type="text" id="acc_tessera" class="form-control border-primary"></div>
@@ -400,6 +408,84 @@
             return (selected + vowels + 'XXX').slice(0, 3);
         }
 
+        // Stati esteri: archivio aperto con codici catastali Z per il CF italiano.
+        // Conserva anche il codice scelto, cosi' i dati restano corretti nelle modifiche successive.
+        let cfCountriesPromise = null;
+        let cfCountries = [];
+        const cfCountriesUrl = 'https://cdn.jsdelivr.net/gh/pmontrasio/codici-stati@master/dist/countries.json';
+
+        function cfLoadCountries() {
+            if (!cfCountriesPromise) {
+                cfCountriesPromise = fetch(cfCountriesUrl)
+                    .then(r => { if (!r.ok) throw new Error('Stati non disponibili'); return r.json(); })
+                    .then(data => {
+                        const records = Object.values(data).filter(x => x && /^Z[0-9]{3}$/.test(x.taxcode_country_code || ''));
+                        if (records.length < 100) throw new Error('Archivio Stati incompleto');
+                        cfCountries = records.map(x => ({
+                            code: x.taxcode_country_code,
+                            name: String(x.italian_country_name_1 || x.italian_country_name_2 || x.english_country_name || '').split('=')[0].trim(),
+                            english: String(x.english_country_name || ''),
+                            alias: String(x.italian_country_name_2 || '')
+                        })).filter(x => x.name);
+                        cfCountries.sort((a,b) => a.name.localeCompare(b.name, 'it'));
+                        ['soci','acc'].forEach(type => {
+                            const input = document.getElementById(`${type}_birthCountry`);
+                            if (!input) return;
+                            const old = input.value;
+                            input.replaceChildren(new Option('Seleziona lo Stato di nascita', ''));
+                            cfCountries.forEach(c => input.add(new Option(`${c.name} (${c.code})`, c.code)));
+                            if (old && !Array.from(input.options).some(o => o.value === old)) input.add(new Option(`${old} (da verificare)`, old));
+                            input.value = old;
+                            const datalist = document.getElementById(`${type}_countryNames`);
+                            if (datalist) {
+                                datalist.replaceChildren();
+                                cfCountries.forEach(c => datalist.appendChild(new Option(c.name)));
+                            }
+                            if (input.closest('form') && document.getElementById(`${type}_birthMode`).value === 'ESTERO') cfUpdate(type);
+                        });
+                        return cfCountries;
+                    }).catch(err => {
+                        cfCountriesPromise = null;
+                        ['soci','acc'].forEach(type => {
+                            const el = document.getElementById(`${type}_birthCountry`);
+                            if (el && el.options.length === 1 && !el.value) el.options[0].text = 'Stati non disponibili: riprova aprendo il modulo';
+                        });
+                        throw err;
+                    });
+            }
+            return cfCountriesPromise;
+        }
+
+        function cfBirthResidenceUI(type) {
+            const bornAbroad = document.getElementById(`${type}_birthMode`).value === 'ESTERO';
+            const livingAbroad = document.getElementById(`${type}_residenceMode`).value === 'ESTERO';
+            const place = document.getElementById(`${type}_luogo`);
+            const prov = document.getElementById(`${type}_prov`);
+            const resProv = document.getElementById(`${type}_provResidenza`);
+            document.getElementById(`${type}_birthCountryWrap`).classList.toggle('d-none', !bornAbroad);
+            document.getElementById(`${type}_residenceCountryWrap`).classList.toggle('d-none', !livingAbroad);
+            place.previousElementSibling.textContent = bornAbroad ? 'Città di nascita (facoltativa)' : 'Comune di nascita';
+            prov.previousElementSibling.textContent = bornAbroad ? 'Provincia di nascita (EE)' : 'Provincia di nascita';
+            prov.readOnly = bornAbroad;
+            if (bornAbroad) prov.value = 'EE';
+            else if (prov.value === 'EE') prov.value = '';
+            prov.maxLength = 2;
+            resProv.previousElementSibling.textContent = livingAbroad ? 'Regione / Provincia estera' : 'Prov. Residenza';
+            resProv.maxLength = livingAbroad ? 70 : 2;
+            if (!livingAbroad && resProv.value.length > 2) resProv.value = '';
+            if (bornAbroad) cfLoadCountries().catch(err => console.warn('Stati esteri:',err));
+            cfUpdate(type);
+        }
+
+        function cfRestoreCountries(type, item) {
+            const input = document.getElementById(`${type}_birthCountry`);
+            const code = item.birthCountryCode || '';
+            if (code && !Array.from(input.options).some(o => o.value === code)) {
+                input.add(new Option(`${item.birthCountry || code} (${code})`, code));
+            }
+            input.value = code;
+        }
+
         // Archivio open dei comuni italiani: codice catastale e sigla provincia.
         // Il database e' consultato dal browser, senza inviare i dati del socio.
         function cfLoadMunicipalities() {
@@ -455,31 +541,54 @@
             const get = field => document.getElementById(`${type}_${field}`).value.trim();
             const name = get('nome'), surname = get('cognome'), sex = get('sesso');
             const date = get('dataNascita'), place = get('luogo'), province = get('prov');
+            const foreign = get('birthMode') === 'ESTERO';
+            const foreignCode = get('birthCountry');
             const output = document.getElementById(`${type}_cf`);
-            if (!name || !surname || !date || !place || (sex !== 'M' && sex !== 'F')) {
+            if (!name || !surname || !date || (!foreign && !place) || (sex !== 'M' && sex !== 'F')) {
                 if (output.value === state.generated) output.value = '';
                 state.generated = '';
-                cfStatus(type, 'Inserisci nome, cognome, sesso, data e comune di nascita.');
+                cfStatus(type, foreign ? 'Inserisci nome, cognome, sesso e data di nascita.' : 'Inserisci nome, cognome, sesso, data e comune di nascita.');
                 return;
             }
-            cfStatus(type, 'Ricerca codice catastale del comune...');
+            cfStatus(type, foreign ? 'Verifica dello Stato estero di nascita...' : 'Ricerca codice catastale del comune...');
             try {
-                const rows = await cfLoadMunicipalities();
-                if (revision !== state.revision || state.manual) return;
-                const key = cfNormalize(place);
-                let matches = rows.filter(r => cfNormalize(r.nome) === key && /^[A-Z][0-9]{3}$/.test(r.codiceCatastale || ''));
-                // La provincia e' necessaria soltanto se esistono piu' comuni omonimi.
-                if (province) matches = matches.filter(r => cfNormalize(r.sigla || r.provincia?.sigla) === cfNormalize(province));
-                const codes = [...new Set(matches.map(r => r.codiceCatastale))];
-                if (codes.length !== 1) {
-                    if (output.value === state.generated) output.value = '';
-                    state.generated = '';
-                    cfStatus(type, codes.length > 1
-                        ? 'Comune ambiguo: indica la sigla della provincia.'
-                        : 'Comune non riconosciuto: controlla nome/provincia o inserisci il CF manualmente.');
-                    return;
+                let placeCode = '';
+                if (foreign) {
+                    if (!foreignCode) {
+                        if (output.value === state.generated) output.value = '';
+                        state.generated = '';
+                        cfStatus(type, 'Seleziona lo Stato estero di nascita per calcolare il CF.');
+                        return;
+                    }
+                    if (!/^Z[0-9]{3}$/.test(foreignCode)) {
+                        cfStatus(type, 'Codice dello Stato non valido: scegli lo Stato dall’elenco.');
+                        return;
+                    }
+                    await cfLoadCountries();
+                    if (revision !== state.revision || state.manual) return;
+                    if (!cfCountries.some(c => c.code === foreignCode)) {
+                        cfStatus(type, 'Stato non riconosciuto nell’archivio: verifica o inserisci il CF manualmente.');
+                        return;
+                    }
+                    placeCode = foreignCode;
+                } else {
+                    const rows = await cfLoadMunicipalities();
+                    if (revision !== state.revision || state.manual) return;
+                    const key = cfNormalize(place);
+                    let matches = rows.filter(r => cfNormalize(r.nome) === key && /^[A-Z][0-9]{3}$/.test(r.codiceCatastale || ''));
+                    if (province) matches = matches.filter(r => cfNormalize(r.sigla || r.provincia?.sigla) === cfNormalize(province));
+                    const codes = [...new Set(matches.map(r => r.codiceCatastale))];
+                    if (codes.length !== 1) {
+                        if (output.value === state.generated) output.value = '';
+                        state.generated = '';
+                        cfStatus(type, codes.length > 1
+                            ? 'Comune ambiguo: indica la sigla della provincia.'
+                            : 'Comune non riconosciuto: controlla nome/provincia o inserisci il CF manualmente.');
+                        return;
+                    }
+                    placeCode = codes[0];
                 }
-                const calculated = cfBuild(name, surname, sex, date, codes[0]);
+                const calculated = cfBuild(name, surname, sex, date, placeCode);
                 if (!calculated) {
                     cfStatus(type, 'Data di nascita non valida: verifica i dati.');
                     return;
@@ -489,7 +598,7 @@
                 cfStatus(type, 'Codice fiscale teorico calcolato. Verifica eventuali omocodie.');
             } catch(err) {
                 if (revision !== state.revision || state.manual) return;
-                cfStatus(type, 'Elenco comuni non raggiungibile: riprova o inserisci il CF manualmente.');
+                cfStatus(type, foreign ? 'Elenco Stati non raggiungibile: riprova o inserisci il CF manualmente.' : 'Elenco comuni non raggiungibile: riprova o inserisci il CF manualmente.');
                 console.warn('Calcolo CF:', err);
             }
         }
@@ -523,7 +632,12 @@
                     cfStatus(type, state.manual ? 'Codice fiscale inserito manualmente: non sarà sovrascritto.' : 'Calcolo automatico riattivato.');
                     if (!state.manual) cfUpdate(type);
                 });
+                ['birthMode', 'residenceMode'].forEach(field => {
+                    document.getElementById(`${type}_${field}`).addEventListener('change', () => cfBirthResidenceUI(type));
+                });
+                document.getElementById(`${type}_birthCountry`).addEventListener('change', () => cfUpdate(type));
                 cfReset(type);
+                cfBirthResidenceUI(type);
             });
         }
         document.addEventListener('DOMContentLoaded', cfInitAutomatic);
@@ -920,8 +1034,8 @@
 
                 let html = `<td><button class="btn btn-sm btn-success shadow-sm" onclick="addToTrip('${item.id}', '${isSoci?'soci':'acc'}')" title="Aggiungi in Trasferta"><i class="fas fa-bus"></i></button></td>`;
                 html += `<td class="fw-bold">${item.cognome} ${item.nome}</td>`;
-                html += `<td>${(item.luogo || item.luogoNascita || item.comuneNascita || '').toString().trim() ? `${(item.luogo || item.luogoNascita || item.comuneNascita).toString().trim().toUpperCase()}${(item.dataNascita || item.data_nascita || item.nascita) ? ` (${formatDateIT(item.dataNascita || item.data_nascita || item.nascita)})` : ''}` : formatDateIT(item.dataNascita || item.data_nascita || item.nascita)}</td>`;
-                html += `<td>${item.residenza || ''} ${item.provResidenza ? `(${item.provResidenza})`:''}</td>`;
+                html += `<td>${(item.luogo || item.luogoNascita || item.comuneNascita || '').toString().trim() ? `${(item.luogo || item.luogoNascita || item.comuneNascita).toString().trim().toUpperCase()}${item.birthMode === 'ESTERO' && item.birthCountry ? ` - ${item.birthCountry}` : ''}${(item.dataNascita || item.data_nascita || item.nascita) ? ` (${formatDateIT(item.dataNascita || item.data_nascita || item.nascita)})` : ''}` : `${item.birthMode === 'ESTERO' ? (item.birthCountry || '') : ''}${(item.dataNascita || item.data_nascita || item.nascita) ? ` (${formatDateIT(item.dataNascita || item.data_nascita || item.nascita)})` : ''}`}</td>`;
+                html += `<td>${item.residenza || ''} ${item.provResidenza ? `(${item.provResidenza})`:''}${item.residenceMode === 'ESTERO' && item.residenceCountry ? ` - ${item.residenceCountry}` : ''}</td>`;
                 html += `<td class="text-uppercase">${item.cf || ''}</td>`;
                 html += `<td>${item.tessera || ''}</td>`;
                 html += `<td><span class="${dateTdClass}">${formatDateIT(item.scadenza)}</span></td>`;
@@ -958,6 +1072,10 @@
             e.preventDefault();
             const idField = document.getElementById(`${type}_id`).value;
             const isNew = !idField;
+            if (document.getElementById(`${type}_birthMode`).value === 'ESTERO' && !/^Z[0-9]{3}$/.test(document.getElementById(`${type}_birthCountry`).value)) {
+                Swal.fire('Stato di nascita mancante', 'Seleziona lo Stato estero di nascita dall’elenco.', 'warning');
+                return;
+            }
             const item = {
                 id: isNew ? Date.now().toString() : idField,
                 nome: document.getElementById(`${type}_nome`).value.trim(),
@@ -966,6 +1084,11 @@
                 dataNascita: document.getElementById(`${type}_dataNascita`).value,
                 luogo: document.getElementById(`${type}_luogo`).value.trim(),
                 prov: document.getElementById(`${type}_prov`).value.toUpperCase(),
+                birthMode: document.getElementById(`${type}_birthMode`).value,
+                birthCountryCode: document.getElementById(`${type}_birthMode`).value === 'ESTERO' ? document.getElementById(`${type}_birthCountry`).value : '',
+                birthCountry: document.getElementById(`${type}_birthMode`).value === 'ESTERO' ? (document.getElementById(`${type}_birthCountry`).selectedOptions[0]?.text || '').replace(/ \(Z[0-9]{3}\)$/, '') : '',
+                residenceMode: document.getElementById(`${type}_residenceMode`).value,
+                residenceCountry: document.getElementById(`${type}_residenceMode`).value === 'ESTERO' ? document.getElementById(`${type}_residenceCountry`).value.trim() : '',
                 cf: document.getElementById(`${type}_cf`).value.toUpperCase(),
                 residenza: document.getElementById(`${type}_residenza`).value.trim(),
                 provResidenza: document.getElementById(`${type}_provResidenza`).value.toUpperCase(),
@@ -1026,6 +1149,11 @@
             document.getElementById(`${type}_cf`).value = item.cf || '';
             document.getElementById(`${type}_residenza`).value = item.residenza || '';
             document.getElementById(`${type}_provResidenza`).value = item.provResidenza || '';
+            document.getElementById(`${type}_birthMode`).value = item.birthMode || (item.birthCountryCode ? 'ESTERO' : 'IT');
+            cfRestoreCountries(type, item);
+            document.getElementById(`${type}_residenceMode`).value = item.residenceMode || (item.residenceCountry ? 'ESTERO' : 'IT');
+            document.getElementById(`${type}_residenceCountry`).value = item.residenceCountry || '';
+            cfBirthResidenceUI(type);
             document.getElementById(`${type}_tessera`).value = item.tessera || '';
             document.getElementById(`${type}_scadenza`).value = item.scadenza || '';
             
@@ -1045,7 +1173,12 @@
             document.getElementById(`form${type.charAt(0).toUpperCase() + type.slice(1)}Title`).innerHTML = '<i class="fas fa-user-plus"></i> Modulo Iscrizione';
             document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}Submit`).innerHTML = '<i class="fas fa-save"></i> Salva';
             
+            document.getElementById(`${type}_birthMode`).value = 'IT';
+            document.getElementById(`${type}_residenceMode`).value = 'IT';
+            document.getElementById(`${type}_birthCountry`).value = '';
+            document.getElementById(`${type}_residenceCountry`).value = '';
             cfReset(type);
+            cfBirthResidenceUI(type);
             toggleForm(type, false);
         }
 
