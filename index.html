@@ -198,7 +198,7 @@
                                         <div class="col-md-4"><label class="fw-bold">Nascita in</label><select id="soci_birthMode" class="form-select"><option value="IT">Italia</option><option value="ESTERO">Estero</option></select></div>
                                         <div class="col-md-8 d-none" id="soci_birthCountryWrap"><label class="fw-bold">Stato estero di nascita</label><select id="soci_birthCountry" class="form-select"><option value="">Caricamento Stati...</option></select><small class="text-muted">Per il codice fiscale viene utilizzato lo Stato, non la città.</small></div>
                                         <div class="col-md-8"><label class="fw-bold">Luogo Nascita</label><input type="text" id="soci_luogo" class="form-control"></div>
-                                        <div class="col-md-4"><label class="fw-bold">Provincia</label><input type="text" id="soci_prov" class="form-control" maxlength="2" placeholder="Es: NA"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Provincia</label><input type="text" id="soci_prov" class="form-control" maxlength="70" placeholder="Es: NA"></div>
                                         <div class="col-md-4"><label class="fw-bold">Residenza in</label><select id="soci_residenceMode" class="form-select"><option value="IT">Italia</option><option value="ESTERO">Estero</option></select></div>
                                         <div class="col-md-8 d-none" id="soci_residenceCountryWrap"><label class="fw-bold">Stato di residenza</label><input id="soci_residenceCountry" class="form-control" type="text" list="soci_countryNames" placeholder="Es. Francia, Germania, Svizzera"><datalist id="soci_countryNames"></datalist></div>
                                         <div class="col-md-8"><label class="fw-bold">Residenza</label><input type="text" id="soci_residenza" class="form-control"></div>
@@ -272,7 +272,7 @@
                                         <div class="col-md-4"><label class="fw-bold">Nascita in</label><select id="acc_birthMode" class="form-select"><option value="IT">Italia</option><option value="ESTERO">Estero</option></select></div>
                                         <div class="col-md-8 d-none" id="acc_birthCountryWrap"><label class="fw-bold">Stato estero di nascita</label><select id="acc_birthCountry" class="form-select"><option value="">Caricamento Stati...</option></select><small class="text-muted">Per il codice fiscale viene utilizzato lo Stato, non la città.</small></div>
                                         <div class="col-md-8"><label class="fw-bold">Luogo Nascita</label><input type="text" id="acc_luogo" class="form-control"></div>
-                                        <div class="col-md-4"><label class="fw-bold">Provincia</label><input type="text" id="acc_prov" class="form-control" maxlength="2"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Provincia</label><input type="text" id="acc_prov" class="form-control" maxlength="70"></div>
                                         <div class="col-md-4"><label class="fw-bold">Residenza in</label><select id="acc_residenceMode" class="form-select"><option value="IT">Italia</option><option value="ESTERO">Estero</option></select></div>
                                         <div class="col-md-8 d-none" id="acc_residenceCountryWrap"><label class="fw-bold">Stato di residenza</label><input id="acc_residenceCountry" class="form-control" type="text" list="acc_countryNames" placeholder="Es. Francia, Germania, Svizzera"><datalist id="acc_countryNames"></datalist></div>
                                         <div class="col-md-8"><label class="fw-bold">Residenza</label><input type="text" id="acc_residenza" class="form-control"></div>
@@ -469,7 +469,7 @@
             prov.readOnly = bornAbroad;
             if (bornAbroad) prov.value = 'EE';
             else if (prov.value === 'EE') prov.value = '';
-            prov.maxLength = 2;
+            prov.maxLength = 70;
             resProv.previousElementSibling.textContent = livingAbroad ? 'Regione / Provincia / Codice estero' : 'Prov. Residenza / Codice estero';
             resProv.maxLength = 70;
             if (bornAbroad) cfLoadCountries().catch(err => console.warn('Stati esteri:',err));
