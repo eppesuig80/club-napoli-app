@@ -202,7 +202,7 @@
                                         <div class="col-md-4"><label class="fw-bold">Residenza in</label><select id="soci_residenceMode" class="form-select"><option value="IT">Italia</option><option value="ESTERO">Estero</option></select></div>
                                         <div class="col-md-8 d-none" id="soci_residenceCountryWrap"><label class="fw-bold">Stato di residenza</label><input id="soci_residenceCountry" class="form-control" type="text" list="soci_countryNames" placeholder="Es. Francia, Germania, Svizzera"><datalist id="soci_countryNames"></datalist></div>
                                         <div class="col-md-8"><label class="fw-bold">Residenza</label><input type="text" id="soci_residenza" class="form-control"></div>
-                                        <div class="col-md-4"><label class="fw-bold">Prov. Residenza</label><input type="text" id="soci_provResidenza" class="form-control" maxlength="2"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Prov. Residenza</label><input type="text" id="soci_provResidenza" class="form-control" maxlength="70" placeholder="Es. MI, PHL o regione estera"></div>
                                         <div class="col-md-4"><label class="fw-bold text-primary">N° Tessera</label><input type="text" id="soci_tessera" class="form-control border-primary"></div>
                                         <div class="col-md-4"><label class="fw-bold text-danger">Scadenza Tessera</label><input type="date" id="soci_scadenza" class="form-control border-danger"></div>
                                         <div class="col-md-4"><label class="fw-bold">Cod/Sic</label><input type="text" id="soci_codSic" class="form-control"></div>
@@ -276,7 +276,7 @@
                                         <div class="col-md-4"><label class="fw-bold">Residenza in</label><select id="acc_residenceMode" class="form-select"><option value="IT">Italia</option><option value="ESTERO">Estero</option></select></div>
                                         <div class="col-md-8 d-none" id="acc_residenceCountryWrap"><label class="fw-bold">Stato di residenza</label><input id="acc_residenceCountry" class="form-control" type="text" list="acc_countryNames" placeholder="Es. Francia, Germania, Svizzera"><datalist id="acc_countryNames"></datalist></div>
                                         <div class="col-md-8"><label class="fw-bold">Residenza</label><input type="text" id="acc_residenza" class="form-control"></div>
-                                        <div class="col-md-4"><label class="fw-bold">Prov. Residenza</label><input type="text" id="acc_provResidenza" class="form-control" maxlength="2"></div>
+                                        <div class="col-md-4"><label class="fw-bold">Prov. Residenza</label><input type="text" id="acc_provResidenza" class="form-control" maxlength="70" placeholder="Es. MI, PHL o regione estera"></div>
                                         <div class="col-md-4"><label class="fw-bold text-primary">N° Tessera</label><input type="text" id="acc_tessera" class="form-control border-primary"></div>
                                         <div class="col-md-4"><label class="fw-bold text-danger">Scadenza</label><input type="date" id="acc_scadenza" class="form-control border-danger"></div>
                                         <div class="col-md-4"><label class="fw-bold">Cod/Sic</label><input type="text" id="acc_codSic" class="form-control"></div>
@@ -470,9 +470,8 @@
             if (bornAbroad) prov.value = 'EE';
             else if (prov.value === 'EE') prov.value = '';
             prov.maxLength = 2;
-            resProv.previousElementSibling.textContent = livingAbroad ? 'Regione / Provincia estera' : 'Prov. Residenza';
-            resProv.maxLength = livingAbroad ? 70 : 2;
-            if (!livingAbroad && resProv.value.length > 2) resProv.value = '';
+            resProv.previousElementSibling.textContent = livingAbroad ? 'Regione / Provincia / Codice estero' : 'Prov. Residenza / Codice estero';
+            resProv.maxLength = 70;
             if (bornAbroad) cfLoadCountries().catch(err => console.warn('Stati esteri:',err));
             cfUpdate(type);
         }
